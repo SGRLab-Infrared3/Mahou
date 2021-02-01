@@ -112,8 +112,8 @@ catch
 end
 
 try
-    WavePlate_Stage = ThorLabs_KCubeDCServo('27253535', 'forward', 'Rotor1');
-    Polarizer_Stage = ThorLabs_TCubeDCServo('83841565', 'forward', 'Rotor2');
+    WavePlate_Stage = ThorLabs_KCubeDCServo('27253535', 'forward', 'waveplate');
+    Polarizer_Stage = ThorLabs_TCubeDCServo('83841565', 'forward', 'polarizer');
     rotors = { WavePlate_Stage, Polarizer_Stage };
 catch
     warning('SGRLAB:SimulationMode','ThorLabs rotational stages not enabled');
