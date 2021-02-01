@@ -59,7 +59,7 @@ function Spectrometer_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to Spectrometer (see VARARGIN)
 
-global method IO FPAS motors JY fsToMm2Pass;
+global method IO FPAS motors rotors JY fsToMm2Pass;
 
 if isfield(handles,'initialized')
   figure(gcf);
@@ -109,6 +109,14 @@ try
   motors = { Interferometer_Stage, Population_Stage };
 catch
   warning('SGRLAB:SimulationMode','PI stages not enabled');
+end
+
+try
+    WavePlate_Stage = ThorLabs_KCubeDCServo('27253535', 'forward', 'Rotor1');
+    Polarizer_Stage = ThorLabs_TCubeDCServo('83841565', 'forward', 'Rotor2');
+    rotors = { WavePlate_Stage, Polarizer_Stage };
+catch
+    warning('SGRLAB:SimulationMode','ThorLabs rotational stages not enabled');
 end
 
 FS = FileSystem.getInstance();
@@ -537,7 +545,7 @@ set(H, 'String', num2str(new_pos));
 
 function cleanup(src,event)
 %for exit
-global IO FPAS JY method motors qclgui;
+global IO FPAS JY method motors rotors qclgui;
 
 disp('shutting down');
 
@@ -547,6 +555,10 @@ disp('NOT YET IMPLEMENTED: save parameters for next time');
 disp('clean up stages')
 for i = 1:length(motors)
   delete(motors{i});
+end
+
+for i = 1:length(rotors)
+    delete(rotors{i});
 end
 
 disp('clean up Monochromator')
