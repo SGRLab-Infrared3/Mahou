@@ -211,6 +211,12 @@ classdef Method < handle
     
     %untested
     function Initialize(obj)
+      whichMethod = obj.handles.popupMethods;
+      methodString = whichMethod.String{whichMethod.Value};
+      methodString = strrep(methodString, 'Method_', '');
+      methodString = strrep(methodString, '_', ' ');
+      methodString = strrep(methodString, '.m', '');
+      fprintf(1, '\nInitializing Method: %s ... \n', methodString)
       
       InitializeFreqAxis(obj);
 
@@ -227,6 +233,8 @@ classdef Method < handle
       InitializeDiagnostics(obj);
       
       InitializeUITable(obj);
+      
+      fprintf(1, 'Done.\n')
     end
     
     %untested
@@ -372,7 +380,7 @@ classdef Method < handle
   %consistent with the PARAMS for this method. Should be called by the
   %class constructor.
   function InitializeParameters(obj)
-    disp('init parameter window');
+    fprintf(1, 'Initializing parameter window ... ');
 
     %get a cell array of the names of the parameters
     names = fieldnames(obj.PARAMS);
@@ -413,7 +421,7 @@ classdef Method < handle
     %update the handles  -- @@@ Seems to be returning the wrong handle set
     %sometimes.
     obj.handles = guihandles(obj.handles.figure1);
- 
+    fprintf(1, 'Done.\n')
   end
   
   function ReadParameters(obj)
@@ -433,6 +441,14 @@ classdef Method < handle
   end
   
   function DeleteParameters(obj)
+      whichMethod = obj.handles.popupMethods;
+      methodString = whichMethod.String{whichMethod.Value};
+      methodString = strrep(methodString, 'Method_', '');
+      methodString = strrep(methodString, '_', ' ');
+      methodString = strrep(methodString, '.m', '');
+      
+      fprintf(1, 'Cleaning up method: %s ... ', methodString);
+      
     %get a cell array of the names of the parameters
     names = fieldnames(obj.PARAMS);
     %how many parameters are there
@@ -446,6 +462,7 @@ classdef Method < handle
         h = findobj(obj.hParamsPanel,'tag',['edit' names{i}]);
         delete(h);
     end
+    fprintf(1, 'Done.\n');
   end
 
     function ProcessSample(obj)

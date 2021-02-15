@@ -1,5 +1,5 @@
 classdef PI_TranslationStage < hgsetget
-
+    
     properties
         center;
         scale;
@@ -7,7 +7,7 @@ classdef PI_TranslationStage < hgsetget
         max_speed;
         jogsize;
         backlash_mm = 0.007; %in mm???
-    end       
+    end
     properties(Access=private)
         minimum;
         maximum;
@@ -18,13 +18,14 @@ classdef PI_TranslationStage < hgsetget
         object;
         ID;
         initialized;
-    end   
+    end
     properties (Hidden,SetAccess = immutable)
-      Tag;
+        Tag;
     end
     methods
         %port scale parent tag
         function obj = PI_TranslationStage(port, scale, direction,tagname)
+            fprintf(1, '\nInitalizing PI translation stage %s ...\n', tagname)
             obj.initialized = 0;
             obj.center = 0;
             obj.scale = scale;
@@ -34,21 +35,21 @@ classdef PI_TranslationStage < hgsetget
             obj.baud = 38400;
             %build a tag from the last input
             if strcmp(tagname(1:4),'edit')
-              obj.Tag = tagname(5:end);
+                obj.Tag = tagname(5:end);
             else
-              obj.Tag = tagname;
+                obj.Tag = tagname;
             end
-            %establish the direction the motor moves 
+            %establish the direction the motor moves
             switch direction
-              case {'forward',1}
-                obj.direction = 1;
-              case {'backward',-1}
-                obj.direction = -1;
-              otherwise
-                warning('SGRLAB:PI_TranslationStage:BadInputArgument','The input %s for direction is not supported. Using "forward"',direction);            
+                case {'forward',1}
+                    obj.direction = 1;
+                case {'backward',-1}
+                    obj.direction = -1;
+                otherwise
+                    warning('SGRLAB:PI_TranslationStage:BadInputArgument','The input %s for direction is not supported. Using "forward"',direction);
             end
             obj.object = instrfind('Type', obj.type, 'Port', obj.comPort, 'Tag', '');
-
+            
             % Create the serial port object if it does not exist
             % otherwise use the object that was found.
             if isempty(obj.object)
@@ -57,20 +58,21 @@ classdef PI_TranslationStage < hgsetget
                 fclose(obj.object);
                 obj.object = obj.object(1);
             end
-
-            % Connect to instrument object, obj1.
-            fopen(obj.object);
-
-            % Configure instrument object, obj1.
-            set(obj.object, 'BaudRate', obj.baud);
-            set(obj.object, 'Terminator', obj.terminator);
-
+            
             try
+                % Connect to instrument object, obj1.
+                fopen(obj.object);
+                
+                % Configure instrument object, obj1.
+                set(obj.object, 'BaudRate', obj.baud);
+                set(obj.object, 'Terminator', obj.terminator);
+                
+                
                 % %%
-               
+                
                 obj.ID = obj.sendPIMotorCommand('*IDN?', 1);
-
-                %minimum commandable position 
+                
+                %minimum commandable position
                 [nums ~] = sscanf(obj.sendPIMotorCommand('TMN?', 1), '%i=%f');
                 obj.minimum = obj.direction*nums(2)/obj.scale;
                 %maximum commandable position
@@ -78,30 +80,30 @@ classdef PI_TranslationStage < hgsetget
                 obj.maximum = obj.direction*nums(2)/obj.scale;
                 %put them in the right order
                 if obj.maximum<obj.minimum
-                  dummy = obj.maximum;
-                  obj.maximum = obj.minimum;
-                  obj.minimum = dummy;
+                    dummy = obj.maximum;
+                    obj.maximum = obj.minimum;
+                    obj.minimum = dummy;
                 end
-                  
+                
                 %maximum commandable speed
                 obj.max_speed = 1/obj.scale; %1mm/s = 6671 fs/s
-
+                
                 %define 2-step macro
-%                 obj.sendPIMotorCommand('MAC BEG TWO', 0);
-%                 pause(1);
-%                  obj.sendPIMotorCommand('MOV 1 $1', 0);
-%                  pause(1);
-%                  obj.sendPIMotorCommand('WAC ONT? 1=1', 0);
-%                  pause(1);
-%                  obj.sendPIMotorCommand('MOV 1 $2', 0);
-%                  pause(1);
-%                  obj.sendPIMotorCommand('WAC ONT? 1=1', 0);
-%                  pause(1);
-%                 obj.sendPIMotorCommand('MAC END', 0);
-%                 pause(1);
+                %                 obj.sendPIMotorCommand('MAC BEG TWO', 0);
+                %                 pause(1);
+                %                  obj.sendPIMotorCommand('MOV 1 $1', 0);
+                %                  pause(1);
+                %                  obj.sendPIMotorCommand('WAC ONT? 1=1', 0);
+                %                  pause(1);
+                %                  obj.sendPIMotorCommand('MOV 1 $2', 0);
+                %                  pause(1);
+                %                  obj.sendPIMotorCommand('WAC ONT? 1=1', 0);
+                %                  pause(1);
+                %                 obj.sendPIMotorCommand('MAC END', 0);
+                %                 pause(1);
                 
                 % check to see if macro is defined. This is tricky because
-                % controller returns lines as separate answers (after a 
+                % controller returns lines as separate answers (after a
                 % terminator) which confuses commands like query. As a
                 % result it may either look like an error is present.
                 %
@@ -130,11 +132,11 @@ classdef PI_TranslationStage < hgsetget
                 else
                     beep
                     fprintf(1,['PI controller macro TWOSTEP is not defined.\n\n'...
-                    'Go To PI MikroMove and define a macro named TWOSTEP as:\n'...
-                    'MOV 1 $1\n',...
-                    'WAC ONT? 1=1\n',...
-                    'MOV 1 $2\n',...
-                    'WAC ONT? 1=1\n']);
+                        'Go To PI MikroMove and define a macro named TWOSTEP as:\n'...
+                        'MOV 1 $1\n',...
+                        'WAC ONT? 1=1\n',...
+                        'MOV 1 $2\n',...
+                        'WAC ONT? 1=1\n']);
                 end
                 % reference move to negative limit
                 obj.sendPIMotorCommand('RON 1 1', 0);
@@ -143,22 +145,22 @@ classdef PI_TranslationStage < hgsetget
                 obj.sendPIMotorCommand('FNL 1', 0);
                 
                 %Wait until motor gets to limit.
-%                 while 1==1
-%                     status = obj.sendPIMotorCommand('SRG? 1 1', 1);
-%                     num = uint16(hex2dec(status(7:end-1)));
-%                     if bitand(num, hex2dec('A000'))==hex2dec('8000')
-%                         break;
-%                     else
-%                         pause(0.1);
-%                     end
-%                 end
-                %at the limit switch consider the motor initialized. 
+                %                 while 1==1
+                %                     status = obj.sendPIMotorCommand('SRG? 1 1', 1);
+                %                     num = uint16(hex2dec(status(7:end-1)));
+                %                     if bitand(num, hex2dec('A000'))==hex2dec('8000')
+                %                         break;
+                %                     else
+                %                         pause(0.1);
+                %                     end
+                %                 end
+                %at the limit switch consider the motor initialized.
                 obj.initialized = 1;
-
+                
                 %obj.initialized must =1 for is busy to work...
                 while obj.IsBusy
-                  drawnow
-                  pause(0.1)
+                    drawnow
+                    pause(0.1)
                 end
                 
                 %Now we can load previous paramters
@@ -167,73 +169,78 @@ classdef PI_TranslationStage < hgsetget
                 
                 %move to last reset position
                 MoveTo(obj,0,obj.max_speed,0,0);
-                                
+                
+                fprintf(1, 'Done.\n');
+                
             catch err  % Need to trap errors someone and display the message
                 fclose(obj.object);
-                err.message
-                warning('Spectrometer:Interferometer', 'Cannot find translation stage.  Entering simulation mode.');
+                %                 err.message
+                warning('Spectrometer:Interferometer', ['Cannot find translation stage ' tagname '. Entering simulation mode.\nError Message:\n', err.message]);
+                %                 warning('Spectrometer:Interferometer', 'Cannot find translation stage.  Entering simulation mode.');
             end
         end
-
+        
         %%
         function delete(obj)
+            fprintf(1, 'Cleaning up PI translation stage: %s ... ', obj.Tag);
             fclose(obj.object);
+            fprintf(1, 'Done.\n')
         end
         
         function new_position = MoveTo(obj, desired_position, speed, move_relative, move_async)
             if move_relative
-                pos = GetPosition(obj);        
+                pos = GetPosition(obj);
                 desired_position = pos+desired_position;
             end
             desired_position_mm = obj.ValidatePosition(desired_position);
             desired_speed_mm_s = obj.ValidateSpeed(speed);
             new_position = desired_position_mm; % In case object not initialized
-
             
-            if obj.initialized 
-%                 desired_position_mm = obj.ValidatePosition(desired_position);
-%                 desired_speed_mm_s = obj.ValidateSpeed(speed);
-
+            
+            if obj.initialized
+                %                 desired_position_mm = obj.ValidatePosition(desired_position);
+                %                 desired_speed_mm_s = obj.ValidateSpeed(speed);
+                
                 %backlash correction
                 old_position_mm = obj.GetPositionMm;
                 if desired_position_mm < old_position_mm
-                  obj.sendPIMotorCommand(sprintf('VEL 1 %f',desired_speed_mm_s), 0);
-                  obj.sendPIMotorCommand(sprintf('MOV 1 %f', desired_position_mm - obj.backlash_mm), 0);
+                    obj.sendPIMotorCommand(sprintf('VEL 1 %f',desired_speed_mm_s), 0);
+                    obj.sendPIMotorCommand(sprintf('MOV 1 %f', desired_position_mm - obj.backlash_mm), 0);
                 end
                 
                 %% move to an absolute position
                 obj.sendPIMotorCommand(sprintf('VEL 1 %f',desired_speed_mm_s), 0);
                 obj.sendPIMotorCommand(sprintf('MOV 1 %f', desired_position_mm), 0);
-
+                
                 %% Wait until stage reaches target
                 if move_async==0
                     while obj.IsBusy
-                      drawnow;
-                      pause(0.1);
+                        drawnow;
+                        pause(0.1);
                     end
                 end
-
+                
                 %read where we arrived
                 new_position = obj.GetPosition;
-
+                
             end
         end
-
+        
         function MoveTwoStep(obj, pos1, pos2, speed)
             if obj.initialized
-              desired_pos1_mm = obj.ValidatePosition(pos1);
-              desired_pos2_mm = obj.ValidatePosition(pos2);
-              desired_speed_mm_s = obj.ValidateSpeed(speed);
-              obj.sendPIMotorCommand(sprintf('VEL 1 %f', desired_speed_mm_s), 0);
-              obj.sendPIMotorCommand(...
-                sprintf('MAC START TWOSTEP %f %f', ...
-                        desired_pos1_mm,...
-                        desired_pos2_mm),...
-                0);
-              obj.sendPIMotorCommand('MAC ERR?',1);
+                desired_pos1_mm = obj.ValidatePosition(pos1);
+                desired_pos2_mm = obj.ValidatePosition(pos2);
+                desired_speed_mm_s = obj.ValidateSpeed(speed);
+                obj.sendPIMotorCommand(sprintf('VEL 1 %f', desired_speed_mm_s), 0);
+                obj.sendPIMotorCommand(...
+                    sprintf('MAC START TWOSTEP %f %f', ...
+                    desired_pos1_mm,...
+                    desired_pos2_mm),...
+                    0);
+                obj.sendPIMotorCommand('MAC ERR?',1);
             end
         end
-            
+        
         function position = GetPosition(obj)
             if obj.initialized
                 %what is the current position in hardware units?
@@ -259,7 +266,7 @@ classdef PI_TranslationStage < hgsetget
                 position = 0;
             end
         end
-
+        
         function SetCenter(obj)
             if obj.initialized
                 %what is the current position in hardware units?
@@ -280,16 +287,16 @@ classdef PI_TranslationStage < hgsetget
         
         function result = sendPIMotorCommand(obj, msg, expect_response)
             message = deblank(msg);
-
+            
             if expect_response~=0
                 result = query(obj.object, message);
             else
                 result = '';
                 fprintf(obj.object, message);
             end
-
-% @@@ This should technically not go here.  Need to think out how 
-% to guarantee that it will always be updated if put somewhere else.
+            
+            % @@@ This should technically not go here.  Need to think out how
+            % to guarantee that it will always be updated if put somewhere else.
             error_code = query(obj.object, 'ERR?');
             if error_code(1)~='0'
                 error('Motor error code %s: %s\n', deblank(error_code), message);
@@ -301,10 +308,11 @@ classdef PI_TranslationStage < hgsetget
                 status = obj.sendPIMotorCommand('SRG? 1 1', 1);
                 num = uint16(hex2dec(status(7:end-1)));
                 busy = bitand(num, hex2dec('A000'))~=hex2dec('8000');
-            else busy = 0;
+            else
+                busy = 0;
             end
         end
-
+        
         function LoadResetPosition(obj)
             name = 'center';
             d = Defaults(obj);
@@ -316,12 +324,12 @@ classdef PI_TranslationStage < hgsetget
             d = Defaults(obj);
             d.SaveDefaults(name);
         end
-               
+        
         function new_position_mm = ValidatePosition(obj,desired_position)
-          if isempty(obj.center)
-            obj.center = 0;
-          end
-          % Check against limits
+            if isempty(obj.center)
+                obj.center = 0;
+            end
+            % Check against limits
             new_position = desired_position+obj.center;
             if new_position<obj.minimum
                 new_position = obj.minimum;
@@ -333,10 +341,10 @@ classdef PI_TranslationStage < hgsetget
         end
         
         function new_speed_mm_s = ValidateSpeed(obj,speed)
-          if speed > obj.max_speed
-            speed = obj.max_speed;
-          end
-          new_speed_mm_s = speed*obj.scale;
+            if speed > obj.max_speed
+                speed = obj.max_speed;
+            end
+            new_speed_mm_s = speed*obj.scale;
         end
     end
     
