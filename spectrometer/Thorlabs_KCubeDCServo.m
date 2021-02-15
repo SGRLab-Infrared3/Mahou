@@ -97,7 +97,7 @@ classdef Thorlabs_KCubeDCServo < Thorlabs_DCServo
         function position = get.position(obj)
             position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
             position = position - obj.center;
-            if strcmp(obj.stageName, 'PRMTZ8/M')
+            if strcmp(obj.stageName, 'PRMTZ8/M') || strcmp(obj.stageName, 'PRM1/M-Z8')
                 if round(position, 2) < 0
                     position = 360 + position;
                 elseif round(position, 2) == 360
