@@ -1,4 +1,4 @@
-classdef ThorLabs_KCubeDCServo < handle
+classdef Thorlabs_KCubeDCServo < Thorlabs_DCServo
     
     properties(Constant, Hidden)
         % path to DLL files (edit as appropriate)
@@ -24,6 +24,7 @@ classdef ThorLabs_KCubeDCServo < handle
     properties
         % These properties are within Matlab wrapper
         isConnected=false;           % Flag set if device connected
+        isBusy;                      % Is the device currently busy
         serialNumber;                % Device serial number
         controllerName;              % Controller Name
         controllerDescription        % Controller Description
@@ -33,7 +34,6 @@ classdef ThorLabs_KCubeDCServo < handle
         acceleration;                % Acceleration
         maxVelocity;                 % Maximum velocity limit
         minVelocity;                 % Minimum velocity limit
-        center=0;                    % Used as home position. All positions are relative to this value
     end
     
     properties (Hidden,SetAccess = immutable)
@@ -48,158 +48,19 @@ classdef ThorLabs_KCubeDCServo < handle
         deviceInfoNET;               % deviceInfo within .NET
     end
     
-    methods
-        
-        function obj = ThorLabs_KCubeDCServo(serialNumber, direction, tagname)
-            % START HERE
-            try   % Load in DLLs if not already loaded
-                NET.addAssembly([obj.MOTORPATHDEFAULT, obj.DEVICEMANAGERDLL]);
-                NET.addAssembly([obj.MOTORPATHDEFAULT, obj.DCSERVODLL]);
-                genMot = NET.addAssembly([obj.MOTORPATHDEFAULT, obj.GENERICMOTORDLL]);
-            catch % DLLs did not load
-                error('Unable to load .NET assemblies')
-            end
-            
-            %build a tag from the last input
-            if strcmp(tagname(1:4),'edit')
-                obj.Tag = tagname(5:end);
-            else
-                obj.Tag = tagname;
-            end
-            Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI.BuildDeviceList();  % Build device list
-            serialNumbersNet = Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI.GetDeviceList(); % Get device list
-            serialNumbers=cell(ToArray(serialNumbersNet)); % Convert serial numbers to cell array
-            
-            if ~any(strcmp(serialNumbers, serialNumber))
-                error('Stage with specified serial number not found')
-            end
-            
-            obj.serialNumber = serialNumber;
+    methods (Hidden)
+        function obj = InitializeDeviceNET(obj, serialNumber)
             obj.deviceNET = Thorlabs.MotionControl.KCube.DCServoCLI.KCubeDCServo.CreateKCubeDCServo(serialNumber);
-            
-            try
-                obj.deviceNET.Connect(serialNumber);
-            catch
-                error('Failed to connect to stage: S/N %s', serialNumber)
-            end
-            
-            if ~obj.deviceNET.IsSettingsInitialized() % Wait for IsSettingsInitialized via .NET interface
-                obj.deviceNET.WaitForSettingsInitialized(obj.TIMEOUTSETTINGS);
-            end
-            
-            if ~obj.deviceNET.IsSettingsInitialized() % Cannot initialise device
-                error('Unable to initialise device: S/N %s', obj.serialNumber);
-            end
-            
-            obj.deviceNET.StartPolling(obj.TPOLLING);   % Start polling via .NET interface
-            obj.motorSettingsNET = obj.deviceNET.LoadMotorConfiguration(obj.serialNumber); % Get motorSettings via .NET interface
-            obj.currentDeviceSettingsNET = obj.deviceNET.MotorDeviceSettings;     % Get currentDeviceSettings via .NET interface
-            obj.deviceInfoNET = obj.deviceNET.GetDeviceInfo();                    % Get deviceInfo via .NET interface
-            
-            enumHandle = genMot.AssemblyHandle.GetType('Thorlabs.MotionControl.GenericMotorCLI.Settings.RotationSettings+RotationDirections');
-            if strcmp(direction, 'forward')
-                MotDir = enumHandle.GetEnumValues().Get(1); % 1 stands for "Forwards"
-            elseif strcmp(direction, 'backward')
-                MotDir = enumHandle.GetEnumValues().Get(2); % 2 stands for "Backwards"
-            else
-                warning('SGRLAB:ThorLabs_KCubeDCServo:BadInputArgument','The input %s for direction is not supported. Using "forward"',direction);
-                MotDir = enumHandle.GetEnumValues().Get(1); % 1 stands for "Forwards"
-            end
-            obj.currentDeviceSettingsNET.Rotation.RotationDirection=MotDir;   % Set motor direction to be 'forwards'
-            LoadResetPosition(obj);
-            obj.Home();
         end
-        
-        function delete(obj) % Disconnect device
-            %             obj.isConnected=obj.deviceNET.IsConnected(); % Update isconnected flag via .NET interface
-            %             if obj.isConnected
-            try
-                obj.deviceNET.StopPolling();  % Stop polling device via .NET interface
-                obj.deviceNET.DisconnectTidyUp();
-                obj.deviceNET.Disconnect();   % Disconnect device via .NET interface
-            catch
-                error(['Unable to delete device',obj.serialNumber]);
-            end
-            obj.isConnected = false;  % Update internal flag to say device is no longer connected
-            %             else % Cannot disconnect because device not connected
-            %                 error('Device not connected.')
-            %             end
-        end
-        
-        function Reset(obj)    % Reset device
-            obj.deviceNET.ClearDeviceExceptions();  % Clear exceptions vua .NET interface
-            obj.deviceNET.ResetConnection(obj.serialNumber) % Reset connection via .NET interface
-        end
-        
-        function Home(obj)              % Home device (must be done before any device move
-            workDone=obj.deviceNET.InitializeWaitHandler();     % Initialise Waithandler for timeout
-            obj.deviceNET.Home(workDone);                       % Home devce via .NET interface
-            obj.deviceNET.Wait(obj.TIMEOUTMOVE);                  % Wait for move to finish
-            obj.MoveTo(0);
-        end
-        
-        function MoveTo(obj,position)     % Move to absolute position
-            try
-                workDone=obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
-                obj.deviceNET.MoveTo(position + obj.center, workDone);       % Move devce to position via .NET interface
-                obj.deviceNET.Wait(obj.TIMEOUTMOVE);              % Wait for move to finish
-            catch % Device faile to move
-                error(['Unable to Move device ',obj.serialNumber,' to ',num2str(position)]);
-            end
-        end
-        
-        function Stop(obj) % Stop the motor moving (needed if set motor to continous)
-            obj.deviceNET.Stop(obj.TIMEOUTMOVE); % Stop motor movement via.NET interface
-        end
-        
-        function SetVelocity(obj, varargin)  % Set velocity and acceleration parameters
-            velpars = obj.deviceNET.GetVelocityParams(); % Get existing velocity and acceleration parameters
-            switch(nargin)
-                case 1  % If no parameters specified, set both velocity and acceleration to default values
-                    velpars.MaxVelocity = obj.DEFAULTVEL;
-                    velpars.Acceleration = obj.DEFAULTACC;
-                case 2  % If just one parameter, set the velocity
-                    velpars.MaxVelocity = varargin{1};
-                case 3  % If two parameters, set both velocitu and acceleration
-                    velpars.MaxVelocity = varargin{1};  % Set velocity parameter via .NET interface
-                    velpars.Acceleration = varargin{2}; % Set acceleration parameter via .NET interface
-            end
-            if System.Decimal.ToDouble(velpars.MaxVelocity)>25  % Allow velocity to be outside range, but issue warning
-                warning('Velocity >25 deg/sec outside specification')
-            end
-            if System.Decimal.ToDouble(velpars.Acceleration)>25 % Allow acceleration to be outside range, but issue warning
-                warning('Acceleration >25 deg/sec2 outside specification')
-            end
-            obj.deviceNET.SetVelocityParams(velpars); % Set velocity and acceleration paraneters via .NET interface
-        end
-        
-        function SetCenter(obj)
-            if obj.isConnected
-                obj.center = obj.position;
-                
-                %save that to a file
-                obj.SaveResetPosition;
-            end
-        end
-        
-        function LoadResetPosition(obj)
-            name = 'center';
-            d = Defaults(obj);
-            d.LoadDefaults(name);
-        end
-        
-        function SaveResetPosition(obj)
-            name = 'center';
-            d = Defaults(obj);
-            d.SaveDefaults(name);
-        end
-        
-        
     end
     
     methods
         function isConnected = get.isConnected(obj)
-            isConnected = boolean(obj.deviceNET.IsConnected());
+            try
+                isConnected = boolean(obj.deviceNET.IsConnected());
+            catch
+                isConnected = false;
+            end
         end
         
         function serialNumber = get.serialNumber(obj)
@@ -236,10 +97,17 @@ classdef ThorLabs_KCubeDCServo < handle
         function position = get.position(obj)
             position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
             position = position - obj.center;
+            if strcmp(obj.stageName, 'PRMTZ8') && position < 0
+                position = 360 + position;
+            end 
         end
         
         function position = get.absolutePosition(obj)
             position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
+        end
+        
+        function isBusy = get.isBusy(obj)
+            isBusy = obj.deviceNET.IsDeviceBusy;
         end
     end
 end

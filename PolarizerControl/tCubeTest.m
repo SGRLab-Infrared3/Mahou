@@ -1,5 +1,5 @@
 
-MOTORPATHDEFAULT='C:\Users\INFRARED\Documents\GitHub\Mahou\PolarizerControl\libs\';
+MOTORPATHDEFAULT='C:\Program Files\Thorlabs\Kinesis\';
 
 CONTROLSDLL = 'Thorlabs.MotionControl.Controls.dll';
 DEVICEMANAGERDLL='Thorlabs.MotionControl.DeviceManagerCLI.dll';
@@ -30,9 +30,13 @@ TIMEOUTMOVE=100000;      % Default time out time for motor move
 %     end
 % end
 
+
 % import Thorlabs.MotionControl.Controls.*
 % import Thorlabs.MotionControl.DeviceManagerCLI.*
 % import Thorlabs.MotionControl.TCube.DCServoCLI.*
+%%
+Thorlabs.MotionControl.DeviceManagerCLI.SimulationManager.Instance.InitializeSimulations()
+
 %%
 % Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI.BuildDeviceList();  % Build device list
 serialNumbersNet = Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI.GetDeviceList(); % Get device list
@@ -59,12 +63,22 @@ enumHandle = genMot.AssemblyHandle.GetType('Thorlabs.MotionControl.GenericMotorC
 MotDir = enumHandle.GetEnumValues().Get(1); % 1 stands for "Forwards"
 % MotDir=Thorlabs.MotionControl.GenericMotorCLI.Settings.RotationSettings+RotationDirections; %Thorlabs.MotionControl.GenericMotorCLI.Settings.RotationDirections.Forward; % MotDir is enumeration for 'forwards'
 currentDeviceSettingsNET.Rotation.RotationDirection=MotDir;   % Set motor direction to be 'forwards#
-
-position = 20;
+%%
+% MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Forward;
+% workDone=deviceNET.InitializeWaitHandler();
+% deviceNET.MoveJog(MotDir, workDone);
+%%
+position = 40;
 fprintf('Moving To %f mm...\n', position);
 workDone=deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
 deviceNET.MoveTo(position, workDone);       % Move devce to position via .NET interface
-deviceNET.Wait(TIMEOUTMOVE);              % Wait for move to finish
+% pause(0.1)
+% deviceNET.Wait(TIMEOUTMOVE);              % Wait for move to finish
+
+while deviceNET.IsDeviceBusy
+    fprintf('Position: %3.2f\n', System.Decimal.ToDouble(deviceNET.Position));
+    pause(0.25)
+end
 
 fprintf('Current Position (mm): %f\n', System.Decimal.ToDouble(deviceNET.Position));
 
@@ -74,6 +88,7 @@ deviceNET.Home(workDone);                       % Home devce via .NET interface
 deviceNET.Wait(TIMEOUTMOVE);                  % Wait for move to finish
 fprintf('Current Position (mm): %f\n', System.Decimal.ToDouble(deviceNET.Position));
 
+%%
 deviceNET.StopPolling();  % Stop polling device via .NET interface
 deviceNET.DisconnectTidyUp();
 deviceNET.Disconnect();   % Disconnect device via .NET interface
