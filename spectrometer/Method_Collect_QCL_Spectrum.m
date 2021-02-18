@@ -1,4 +1,4 @@
- classdef Method_Collect_QCL_Spectrum < Method
+classdef Method_Collect_QCL_Spectrum < Method
     %inherits from Method superclass
     
     properties (Hidden,SetAccess = immutable)
@@ -66,7 +66,8 @@
     % public methods
     %
     methods
-        function obj = Method_Collect_QCL_Spectrum(sampler,gate,spect,motors,handles,hParamsPanel,hMainAxes,hRawDataAxes,hDiagnosticsPanel)
+        function obj = Method_Collect_QCL_Spectrum(sampler,gate,spect,...
+                motors,rotors,handles,hParamsPanel,hMainAxes,hRawDataAxes,hDiagnosticsPanel)
             global QCLLaser qclgui
             %constructor
             
@@ -92,6 +93,7 @@
             obj.source.gate = gate;
             obj.source.spect = spect;
             obj.source.motors = motors;
+            obj.source.rotors = rotors;
             obj.hMainAxes = hMainAxes;
             obj.hParamsPanel = hParamsPanel;
             obj.hRawDataAxes = hRawDataAxes;
@@ -157,7 +159,7 @@
         function InitializeFreqAxis(obj)
             obj.freq = obj.PARAMS.initFreq:obj.PARAMS.dFreq:obj.PARAMS.finalFreq;
             obj.result.freq = obj.freq;
-%             obj.abs = zeros(1, length(obj.freq));
+            %             obj.abs = zeros(1, length(obj.freq));
             set(obj.hMainAxes,'Xlim',[obj.freq(1) obj.freq(end)]);
         end
         
@@ -209,7 +211,7 @@
                 qclgui = QCLGUI;
             end
             
-            obj.source.laser = QCLLaser;           
+            obj.source.laser = QCLLaser;
             
             if ~obj.source.laser.isArmed
                 obj.source.laser.armLaser;
@@ -386,7 +388,7 @@
             obj.source.laser.cancelManualTune;
             
             isManualTuneEnabled = false;
-                        
+            
         end
         
         function ProcessSampleSort(obj)
@@ -474,7 +476,7 @@
             %Uncertainty
         end
     end
-        
+    
     methods %public methods
         
         function out = get.Raw_data(obj)
@@ -486,23 +488,23 @@
         
         function InitializeRawDataPlot(obj)
             
-%             nShots = obj.PARAMS.nShots;
-%             hold(obj.hRawDataAxes, 'all');
-%             obj.hPlotRaw = zeros(1,2);
-%             
-%             obj.hPlotRaw(1) = plot(obj.hRawDataAxes, 1:nShots, zeros(1,nShots));
-%             set(obj.hPlotRaw(1),'Color',[mod(1-(1-1)*0.1,1) 0 0]);
-%             set(obj.hPlotRaw(1),'YDataSource','obj.sample(obj.ind_sig,:)');
-%             hold(obj.hRawDataAxes, 'on');
-%             
-%             obj.hPlotRaw(2) = plot(obj.hRawDataAxes, 1:nShots, zeros(1, nShots));
-%             set(obj.hPlotRaw(2),'Color',[mod(1-(2-1)*0.1,1) 0 0]);
-%             set(obj.hPlotRaw(2),'YDataSource','obj.sample(obj.ind_ref,:)');
-%             hold(obj.hRawDataAxes, 'on');
-%             
-%             set(obj.hRawDataAxes,'XLim',[1 nShots],'Ylim',[0 2^16*1.05]);
+            %             nShots = obj.PARAMS.nShots;
+            %             hold(obj.hRawDataAxes, 'all');
+            %             obj.hPlotRaw = zeros(1,2);
+            %
+            %             obj.hPlotRaw(1) = plot(obj.hRawDataAxes, 1:nShots, zeros(1,nShots));
+            %             set(obj.hPlotRaw(1),'Color',[mod(1-(1-1)*0.1,1) 0 0]);
+            %             set(obj.hPlotRaw(1),'YDataSource','obj.sample(obj.ind_sig,:)');
+            %             hold(obj.hRawDataAxes, 'on');
+            %
+            %             obj.hPlotRaw(2) = plot(obj.hRawDataAxes, 1:nShots, zeros(1, nShots));
+            %             set(obj.hPlotRaw(2),'Color',[mod(1-(2-1)*0.1,1) 0 0]);
+            %             set(obj.hPlotRaw(2),'YDataSource','obj.sample(obj.ind_ref,:)');
+            %             hold(obj.hRawDataAxes, 'on');
+            %
+            %             set(obj.hRawDataAxes,'XLim',[1 nShots],'Ylim',[0 2^16*1.05]);
             
-%             nfreq = length(obj.freq);
+            %             nfreq = length(obj.freq);
             
             n_plots = size(obj.Raw_data,1);
             hold(obj.hRawDataAxes, 'off');
@@ -520,7 +522,7 @@
             obj.hPlotRaw(i) = plot(obj.hRawDataAxes, obj.freq, ones(1,length(obj.freq)), 'b');
             set(obj.hPlotRaw(i),'YDataSource','obj.Noise.*obj.noiseGain');
             set(obj.hRawDataAxes,'XLim',[obj.freq(1) obj.freq(end)],'Ylim',[0 2^16*1.05]);
-
+            
         end
         %acquire a background (might need to be public)
         function BackgroundAcquire(obj)
@@ -556,6 +558,6 @@
         end
         function delete(obj)
             DeleteParameters(obj);
-        end 
-    end    
+        end
+    end
 end

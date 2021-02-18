@@ -120,7 +120,8 @@ JY = Monochromator_JY.getInstance;
 JY.InitializeGui(handles.uipanelMonochromator);
 
 %Default method on startup.
-method = Method_Show_Spectrum(FPAS,IO,JY,motors, handles,handles.pnlParameters,handles.axesMain,handles.axesRawData,handles.pnlNoise);
+method = Method_Show_Spectrum(FPAS,IO,JY,motors,rotors, handles,...
+    handles.pnlParameters,handles.axesMain,handles.axesRawData,handles.pnlNoise);
 
 delete(splash);
 
@@ -267,7 +268,7 @@ function updateMethod(handles)
 %update the current method based on the values of the popup menus Method
 %and DataSource. Gate and Spectrometer could be added but not yet
 %implemented. Called by popupMethods_Callback and popupDataSource_Callback
-global method IO JY motors;
+global method IO JY motors rotors;
 
 %clear old class instance
 delete(method);
@@ -285,7 +286,7 @@ sampler = feval([str_sampler '.getInstance']);
 
 %method = Method_Show_Spectrum(TEST,IO,JY,handles,handles.pnlParameters,...
 %  handles.axesMain,handles.axesRawData,handles.pnlNoise);
-method = feval(str_method,sampler,IO,JY,motors,handles,handles.pnlParameters,...
+method = feval(str_method,sampler,IO,JY,motors,rotors,handles,handles.pnlParameters,...
     handles.axesMain,handles.axesRawData,handles.pnlNoise);
 
 % --- Executes during object creation, after setting all properties.
