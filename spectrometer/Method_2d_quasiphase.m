@@ -98,7 +98,7 @@ classdef Method_2d_quasiphase < Method
             obj.source.gate = gate;
             obj.source.spect = spect;
             obj.source.motors = motors;
-            obj.srouce.rotors = rotors;
+            obj.source.rotors = rotors;
             obj.hMainAxes = hMainAxes;
             obj.hParamsPanel = hParamsPanel;
             obj.hRawDataAxes = hRawDataAxes;
