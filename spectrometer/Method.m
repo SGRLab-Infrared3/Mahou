@@ -392,10 +392,10 @@ classdef Method < handle
             
             x_pos = 2;
             y_pos = -2;
-            width = 12; %35;
+            width = 13; %35;
             %   height = 1.83;%25;
             height = 1.54;%21;
-            x_offset = 1;
+            x_offset = 4;
             %    y_offset = 0.25;
             y_offset = 0.21;
             
@@ -447,7 +447,7 @@ classdef Method < handle
             methodString = strrep(methodString, '_', ' ');
             methodString = strrep(methodString, '.m', '');
             
-            fprintf(1, 'Cleaning up method: %s ... ', methodString);
+            fprintf(1, '\nCleaning up method: %s ... ', methodString);
             
             %get a cell array of the names of the parameters
             names = fieldnames(obj.PARAMS);
@@ -462,6 +462,10 @@ classdef Method < handle
                 h = findobj(obj.hParamsPanel,'tag',['edit' names{i}]);
                 delete(h);
             end
+            
+            h = findobj(obj.hParamsPanel, 'tag', 'pbInputButton');
+            delete(h);
+            
             fprintf(1, 'Done.\n');
         end
         
