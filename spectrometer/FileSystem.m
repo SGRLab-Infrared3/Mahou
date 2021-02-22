@@ -92,6 +92,99 @@ classdef FileSystem < handle
         
     end
     
+    methods (Access = public)
+        
+        function SaveOutputFile(obj)
+            
+            if obj.flagSaveRemote
+                obj.SaveRemoteOutputFile();
+            end
+            
+            if obj.flagSaveELN
+                obj.SaveELNOutputFile();
+            end
+            
+            %after saving update the file directory and file count
+            %this has the side effect of moving into a new directory after the
+            %first save after midnight (sorry)
+            obj.updateParameters;
+        end
+        
+        function SaveRemoteOutputFile(obj)
+            
+            remote_file_name_and_path = sprintf('%s/%s/experimental_details.txt',...
+                obj.dataDirRemote, obj.DateString);
+            local_file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
+            
+            dirname =  sprintf('%s/%s',obj.dataDirRemote, obj.DateString);
+            if ~exist(dirname, 'file')
+                mkdir(dirname);
+            end
+            
+            copyfile(local_file_name_and_path, remote_file_name_and_path);
+        end
+        
+        function SaveELNOutputFile(obj)
+            %make sure we are on the right page. If not then udate the page
+            if ~strcmp(obj.DateString,obj.eln.page_name)
+                %if they are not the same, update
+                obj.eln = labarchivesCallObj('page',obj.DateString);
+            end
+            
+            currentPath = pwd;
+            cd(obj.DatePath)
+            filename = 'experimental_details.txt';
+            
+            obj.eln = obj.eln.loadEntriesForPage();
+            
+            
+            
+            if length(obj.eln.entries) == 1
+                entryNames = obj.eln.entries.attach_dash_file_dash_name.Text;
+            else
+                entryNames = cell(1, length(obj.eln.entries));
+                for ii = 1:length(obj.eln.entries)
+                    entryNames{ii} = obj.eln.entries{ii}.attach_dash_file_dash_name.Text;
+                end
+            end
+            
+            entryNames = string(entryNames);
+            
+            if ~isempty(find(strcmp(entryNames, filename), 1))
+                obj.eln = obj.eln.updateAttachment(filename);
+            else
+                obj.eln=obj.eln.addAttachment(filename);
+            end
+            
+            cd(currentPath);
+        end
+        
+        
+        function InitializeLocalOutputFile(obj)
+            file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
+            fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
+            dd = datestr(now);
+            fprintf(fid,'\r\n%s\r\n\r\n',dd);
+            fprintf(fid,'%10s%10s%10s\r\n','Run','nScans','t2 (fs)');
+            fclose(fid);
+        end
+        
+        function AppendLocalOutputFile(obj, nScans, t2)
+            file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
+            
+            fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
+            fprintf(fid,'%10i%10i%10i\r\n',obj.FileIndex, nScans, t2);
+            fclose(fid);
+        end
+        
+        function CloseLocalOutputFile(obj)
+            file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
+            fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
+            fprintf(fid,'--\r\n');
+            fclose(fid);
+        end
+    end
+    
     methods (Access = private)
         
         % Note problem: if an exception occurs after some temp files are
