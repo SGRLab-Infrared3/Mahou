@@ -37,6 +37,7 @@ classdef Method_RawData < Method
             obj.source.gate = gate;
             obj.source.spect = spect;
             obj.source.motors = motors;
+            obj.source.rotors = rotors;
             obj.hMainAxes = hMainAxes;
             obj.hParamsPanel = hParamsPanel;
             obj.hRawDataAxes = hRawDataAxes;
