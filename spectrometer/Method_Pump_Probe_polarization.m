@@ -1,4 +1,4 @@
-classdef Method_Pump_Probe_polarization < Method_Pump_Probe
+classdef Method_Pump_Probe_Polarization < Method_Pump_Probe
     methods
         function Scan(obj)
             obj.ScanIsRunning = true;

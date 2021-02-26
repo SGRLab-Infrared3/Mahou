@@ -1,4 +1,4 @@
-classdef Method_2d_quasiphase_polarization < Method_2d_quasiphase    
+classdef Method_2d_quasiphase_Polarization < Method_2d_quasiphase    
     methods
         function Scan(obj)
             obj.ScanIsRunning = true;
