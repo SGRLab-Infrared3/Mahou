@@ -441,8 +441,7 @@ classdef Method < handle
         end
         
         function DeleteParameters(obj)
-            whichMethod = obj.handles.popupMethods;
-            methodString = whichMethod.String{whichMethod.Value};
+            methodString = class(obj);
             methodString = strrep(methodString, 'Method_', '');
             methodString = strrep(methodString, '_', ' ');
             methodString = strrep(methodString, '.m', '');
