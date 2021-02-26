@@ -23,7 +23,7 @@ classdef Method_Pump_Probe < Method
         ext; %testing external channels for uitable
         signal = struct('data',[],'std',[],'freq',[]);
         
-        PARAMS = struct('nShots',500,'nScans',-1);
+        PARAMS = struct('nShots',500,'nScans',-1, 't2', 200);
         
         source = struct('sampler',[],'gate',[],'spect',[],'motors',[]);
         
@@ -50,6 +50,7 @@ classdef Method_Pump_Probe < Method
         nShotsSorted;
         i_scan;
         
+        initialPosition;
     end
     
     properties (Dependent, SetAccess = protected)
@@ -201,7 +202,14 @@ classdef Method_Pump_Probe < Method
             InitializeData(obj);
             
             InitializeTask(obj);
-            %just leave motors where they are
+            
+            %Move population motor to specified t2
+            obj.initialPosition = obj.source.motors{2}.GetPosition;
+            
+            set(obj.handles.editMotor2,'String','moving...');
+            obj.source.motors{2}.MoveTo(obj.PARAMS.t2,6000,0,0);
+            set(obj.handles.editMotor2,'String',num2str(pos));
+            
         end
         
         %start first sample. This code is executed before the scan loop starts
@@ -272,7 +280,11 @@ classdef Method_Pump_Probe < Method
         function ScanCleanup(obj)
             obj.source.gate.CloseClockGate;
             obj.source.sampler.ClearTask;
-            %no need to move motors back to zero
+            
+            %Move population stage back to initial position
+            set(obj.handles.editMotor2,'String','moving...');
+            pos = obj.source.motors{2}.MoveTo(obj.initialPosition,6000,0,0);
+            set(obj.handles.editMotor2,'String',num2str(pos));
         end
         
         function ProcessSampleSort(obj)
