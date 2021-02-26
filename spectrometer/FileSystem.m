@@ -97,11 +97,21 @@ classdef FileSystem < handle
         function SaveOutputFile(obj)
             
             if obj.flagSaveRemote
-                obj.SaveRemoteOutputFile();
+                try
+                    obj.SaveRemoteOutputFile();
+                catch err
+                    fprintf(1, '\n');
+                    warning('Spectrometer:FileSystem', ['Failed to upload experimental details output file to remote (Box).\n', err.message]);
+                end
             end
             
             if obj.flagSaveELN
-                obj.SaveELNOutputFile();
+                try
+                    obj.SaveELNOutputFile();
+                catch err
+                    fprintf(1, '\n');
+                    warning('Spectrometer:FileSystem', ['Failed to upload experimental details output file to Lab Archives.\n', err.message]);
+                end
             end
             
             %after saving update the file directory and file count
@@ -161,11 +171,23 @@ classdef FileSystem < handle
         
         
         function InitializeLocalOutputFile(obj)
+            global method
             file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
             fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
+            
+            methodString = class(method);
+            methodString = strrep(methodString, 'Method_', '');
+            methodString = strrep(methodString, '_', ' ');
+            methodString = strrep(methodString, '.m', '');
+            fprintf(fid, '\r\n|--------------------------------|\r\n');
+            fprintf(fid, '|%32s|\r\n', methodString);
+            
             dd = datestr(now);
-            fprintf(fid,'\r\n%s\r\n\r\n',dd);
-            fprintf(fid,'%10s%10s%10s\r\n','Run','nScans','t2 (fs)');
+            fprintf(fid,'|%32s|\r\n',dd);
+            fprintf(fid, '|--------------------------------|\r\n');
+            
+            fprintf(fid,'|%10s|%10s|%10s|\r\n','Run','nScans','t2 (fs)');
+            fprintf(fid,'|----------|----------|----------|\r\n');
             fclose(fid);
         end
         
@@ -173,14 +195,14 @@ classdef FileSystem < handle
             file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
             
             fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
-            fprintf(fid,'%10i%10i%10i\r\n',obj.FileIndex, nScans, t2);
+            fprintf(fid,'|%10i|%10i|%10i|\r\n',obj.FileIndex, nScans, t2);
             fclose(fid);
         end
         
         function CloseLocalOutputFile(obj)
             file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
             fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
-            fprintf(fid,'--\r\n');
+            fprintf(fid,'|----------|----------|----------|\r\n\r\n');
             fclose(fid);
         end
     end
