@@ -1,10 +1,10 @@
-classdef Method_2d_quasiphase_Multi_Time_Point < Method_2d_quasiphase & Multi_Time_Point_Method
+classdef Method_Pump_Probe_Multi_Time_Point < Method_Pump_Probe & Multi_Time_Point_Method
     
     methods
-        function obj = Method_2d_quasiphase_Multi_Time_Point(sampler,gate,spect,...
+        function obj = Method_Pump_Probe_Multi_Time_Point(sampler,gate,spect,...
                 motors,rotors,handles,hParamsPanel,hMainAxes,hRawDataAxes,hDiagnosticsPanel)
             
-            obj = obj@Method_2d_quasiphase(sampler,gate,spect,...
+            obj = obj@Method_Pump_Probe(sampler,gate,spect,...
                 motors,rotors,handles,hParamsPanel,hMainAxes,hRawDataAxes,hDiagnosticsPanel);
             
             obj.LoadT2Array();
