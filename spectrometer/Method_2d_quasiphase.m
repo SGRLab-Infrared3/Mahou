@@ -110,6 +110,8 @@ classdef Method_2d_quasiphase < Method
             obj.initialPosition(1) = obj.source.motors{1}.GetPosition;
             obj.initialPosition(2) = obj.source.motors{2}.GetPosition;
             
+            obj.result.polarization = '';
+            
             Initialize(obj);
             
             %     InitializeFreqAxis(obj);
