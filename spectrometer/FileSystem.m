@@ -179,30 +179,30 @@ classdef FileSystem < handle
             methodString = strrep(methodString, 'Method_', '');
             methodString = strrep(methodString, '_', ' ');
             methodString = strrep(methodString, '.m', '');
-            fprintf(fid, '\r\n|--------------------------------|\r\n');
-            fprintf(fid, '|%32s|\r\n', methodString);
+            fprintf(fid, '\r\n|------------------------------------------------|\r\n');
+            fprintf(fid, '|%48s|\r\n', methodString);
             
             dd = datestr(now);
-            fprintf(fid,'|%32s|\r\n',dd);
-            fprintf(fid, '|--------------------------------|\r\n');
+            fprintf(fid,'|%48s|\r\n',dd);
+            fprintf(fid, '|------------------------------------------------|\r\n');
             
-            fprintf(fid,'|%10s|%10s|%10s|\r\n','Run','nScans','t2 (fs)');
-            fprintf(fid,'|----------|----------|----------|\r\n');
+            fprintf(fid,'|%10s|%10s|%10s|%15s|\r\n','Run','nScans','t2 (fs)', 'Polarization');
+            fprintf(fid,'|----------|----------|----------|---------------|\r\n');
             fclose(fid);
         end
         
-        function AppendLocalOutputFile(obj, nScans, t2)
+        function AppendLocalOutputFile(obj, nScans, t2, polarization)
             file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
             
             fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
-            fprintf(fid,'|%10i|%10i|%10i|\r\n',obj.FileIndex, nScans, t2);
+            fprintf(fid,'|%10i|%10i|%10i|%15s|\r\n',obj.FileIndex, nScans, t2, polarization);
             fclose(fid);
         end
         
         function CloseLocalOutputFile(obj)
             file_name_and_path = sprintf('%s/experimental_details.txt', obj.DatePath);
             fid = fopen(file_name_and_path,'a+'); %open a file for appending text to
-            fprintf(fid,'|----------|----------|----------|\r\n\r\n');
+            fprintf(fid, '|------------------------------------------------|\r\n\r\n');
             fclose(fid);
         end
     end
