@@ -13,6 +13,8 @@ classdef Method < handle
         %the background which is subtracted from each signal after sorting. The
         %background must match the structure of the data in <sorted>.
         background = struct('data',[],'std',[],'freq',[]);
+        
+        
     end
     
     %the properties not visible outside the class or subclass
@@ -391,11 +393,11 @@ classdef Method < handle
             y_origin = temp(4); %height of Panel
             
             x_pos = 2;
-            y_pos = -2;
-            width = 13; %35;
+            y_pos = -1.5;
+            width = 14; %35;
             %   height = 1.83;%25;
             height = 1.54;%21;
-            x_offset = 4;
+            x_offset = 3;
             %    y_offset = 0.25;
             y_offset = 0.21;
             
