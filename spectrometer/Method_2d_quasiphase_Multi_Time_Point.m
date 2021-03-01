@@ -1,5 +1,9 @@
 classdef Method_2d_quasiphase_Multi_Time_Point < Method_2d_quasiphase & Multi_Time_Point_Method
     
+    properties
+        scanMethod = ''; % 'Scan@Method(obj)';
+    end
+    
     methods
         function obj = Method_2d_quasiphase_Multi_Time_Point(sampler,gate,spect,...
                 motors,rotors,handles,hParamsPanel,hMainAxes,hRawDataAxes,hDiagnosticsPanel)
