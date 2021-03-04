@@ -64,54 +64,94 @@ classdef Thorlabs_KCubeDCServo < Thorlabs_DCServo
         end
         
         function serialNumber = get.serialNumber(obj)
-            serialNumber = char(obj.deviceNET.DeviceID);          % update serial number
+            try
+                serialNumber = char(obj.deviceNET.DeviceID);          % update serial number
+            catch
+                serialNumber = 'SimMode';
+            end
         end
         
         function controllerName = get.controllerName(obj)
-            controllerName = char(obj.deviceInfoNET.Name);        % update controleller name
+            try
+                controllerName = char(obj.deviceInfoNET.Name);        % update controleller name
+            catch
+                controllerName = 'SimMode';
+            end
         end
         
         function controllerDescription = get.controllerDescription(obj)
-            controllerDescription = char(obj.deviceInfoNET.Description);  % update controller description
+            try
+                controllerDescription = char(obj.deviceInfoNET.Description);  % update controller description
+            catch
+                controllerDescription = 'This controller is not currently connected. It has entered simulation mode';
+            end
         end
         
         function stageName = get.stageName(obj)
-            stageName = char(obj.motorSettingsNET.DeviceSettingsName);    % update stagename
+            try
+                stageName = char(obj.motorSettingsNET.DeviceSettingsName);    % update stagename
+            catch
+                stageName = 'SimMode';
+            end
         end
         
         function acceleration = get.acceleration(obj)
-            velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
-            acceleration = System.Decimal.ToDouble(velocityParams.Acceleration); % update acceleration parameter
+            try
+                velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
+                acceleration = System.Decimal.ToDouble(velocityParams.Acceleration); % update acceleration parameter
+            catch
+                acceleration = 0;
+            end
         end
         
         function maxVelocity = get.maxVelocity(obj)
-            velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
-            maxVelocity = System.Decimal.ToDouble(velocityParams.MaxVelocity);   % update max velocit parameter
+            try
+                velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
+                maxVelocity = System.Decimal.ToDouble(velocityParams.MaxVelocity);   % update max velocit parameter
+            catch
+                maxVelocity = 0;
+            end
         end
         
         function minVelocity = get.minVelocity(obj)
-            velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
-            minVelocity = System.Decimal.ToDouble(velocityParams.MinVelocity);   % update Min velocity parameter
+            try
+                velocityParams = obj.deviceNET.GetVelocityParams();             % update velocity parameter
+                minVelocity = System.Decimal.ToDouble(velocityParams.MinVelocity);   % update Min velocity parameter
+            catch
+                minVelocity = 0;
+            end
         end
         
         function position = get.position(obj)
-            position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
-            position = position - obj.center;
-            if strcmp(obj.stageName, 'PRMTZ8/M') || strcmp(obj.stageName, 'PRM1/M-Z8')
-                if round(position, 2) < 0
-                    position = 360 + position;
-                elseif round(position, 2) == 360
-                    position = 0;
+            try
+                position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
+                position = position - obj.center;
+                if strcmp(obj.stageName, 'PRMTZ8/M') || strcmp(obj.stageName, 'PRM1/M-Z8')
+                    if round(position, 2) < 0
+                        position = 360 + position;
+                    elseif round(position, 2) == 360
+                        position = 0;
+                    end
                 end
-            end 
+            catch
+                position = 33;
+            end
         end
         
         function position = get.absolutePosition(obj)
-            position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
+            try
+                position = System.Decimal.ToDouble(obj.deviceNET.Position);   % Read current device position
+            catch
+                position = 33;
+            end
         end
         
         function isBusy = get.isBusy(obj)
-            isBusy = obj.deviceNET.IsDeviceBusy;
+            try
+                isBusy = obj.deviceNET.IsDeviceBusy;
+            catch
+                isBusy = 0;
+            end
         end
     end
 end

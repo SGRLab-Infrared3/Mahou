@@ -159,135 +159,175 @@ classdef Thorlabs_DCServo < handle & matlab.mixin.Heterogeneous
         end
         
         function Reset(obj)    % Reset device
-            obj.deviceNET.ClearDeviceExceptions();  % Clear exceptions vua .NET interface
-            obj.deviceNET.ResetConnection(obj.serialNumber) % Reset connection via .NET interface
+            if obj.isConnected
+                try
+                    obj.deviceNET.ClearDeviceExceptions();  % Clear exceptions vua .NET interface
+                    obj.deviceNET.ResetConnection(obj.serialNumber) % Reset connection via .NET interface
+                catch err
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to reset device ',obj.serialNumber,'.\n', err.message])
+                end
+            end
         end
         
         function Home(obj)              % Home device (must be done before any device move
-            workDone=obj.deviceNET.InitializeWaitHandler();     % Initialise Waithandler for timeout
-            fprintf(1, 'Homing Stage ... ')
-            obj.deviceNET.Home(workDone);                       % Home devce via .NET interface
-            obj.deviceNET.Wait(obj.TIMEOUTMOVE);                  % Wait for move to finish
-            fprintf(1, 'Done.\nMoving stage to set zero-point ... \n');
-            obj.MoveTo(0);
-            fprintf(1, 'Done.\n')            
+            if obj.isConnected
+                try
+                    workDone=obj.deviceNET.InitializeWaitHandler();     % Initialise Waithandler for timeout
+                    fprintf(1, 'Homing Stage ... ')
+                    obj.deviceNET.Home(workDone);                       % Home devce via .NET interface
+                    obj.deviceNET.Wait(obj.TIMEOUTMOVE);                  % Wait for move to finish
+                    fprintf(1, 'Done.\nMoving stage to set zero-point ... \n');
+                    obj.MoveTo(0);
+                    fprintf(1, 'Done.\n')
+                catch err
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to home device ',obj.serialNumber,'.\n', err.message])
+                end
+            end
         end
         
         function MoveTo(obj,position)     % Move to absolute position
-            try
-                while obj.isBusy
-                    pause(obj.TPOLLING/1000);
-                end
-                
-                while position >= 360
-                    position = position - 360;
-                end
-                
-                workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
-                obj.deviceNET.MoveTo(position + obj.center, workDone);       % Move devce to position via .NET interface
-%                 obj.deviceNET.Wait(obj.TIMEOUTMOVE);              % Wait for move to finish
-                
-                pause(obj.TPOLLING./1000);
-                
-                while obj.deviceNET.IsDeviceBusy
-                    obj.UpdatePositionTextbox();
+            if obj.isConnected
+                try
+                    while obj.isBusy
+                        pause(obj.TPOLLING/1000);
+                    end
+                    
+                    while position >= 360
+                        position = position - 360;
+                    end
+                    
+                    workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
+                    obj.deviceNET.MoveTo(position + obj.center, workDone);       % Move devce to position via .NET interface
+                    %                 obj.deviceNET.Wait(obj.TIMEOUTMOVE);              % Wait for move to finish
+                    
                     pause(obj.TPOLLING./1000);
+                    
+                    while obj.deviceNET.IsDeviceBusy
+                        obj.UpdatePositionTextbox();
+                        pause(obj.TPOLLING./1000);
+                    end
+                    
+                    obj.UpdatePositionTextbox();
+                    
+                catch % Device faile to move
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to move device ', obj.serialNumber, ' to ', num2str(position), '.\n', err.message])
                 end
-                
-                obj.UpdatePositionTextbox();
-                
-            catch % Device faile to move
-                error(['Unable to Move device ',obj.serialNumber,' to ',num2str(position)]);
             end
         end
         
         function JogForward(obj)
-            try
-                while obj.isBusy
+            if obj.isConnected
+                try
+                    while obj.isBusy
+                        pause(obj.TPOLLING./1000);
+                    end
+                    
+                    if strcmp(obj.direction, 'forward')
+                        MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Forward;
+                    elseif strcmp(obj.direction, 'backward')
+                        MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Backward;
+                    end
+                    workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
+                    obj.deviceNET.MoveJog(MotDir, workDone);
+                    %                 obj.deviceNET.Wait(obj.TIMEOUTMOVE);
+                    
                     pause(obj.TPOLLING./1000);
-                end
-                
-                if strcmp(obj.direction, 'forward')
-                    MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Forward;
-                elseif strcmp(obj.direction, 'backward')
-                    MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Backward;
-                end
-                workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
-                obj.deviceNET.MoveJog(MotDir, workDone);
-                %                 obj.deviceNET.Wait(obj.TIMEOUTMOVE);
-                
-                pause(obj.TPOLLING./1000);
-                
-                while obj.deviceNET.IsDeviceBusy
+                    
+                    while obj.deviceNET.IsDeviceBusy
+                        obj.UpdatePositionTextbox();
+                        pause(obj.TPOLLING./1000);
+                    end
                     obj.UpdatePositionTextbox();
-                    pause(obj.TPOLLING./1000);
+                    
+                catch err % Device failed to jog
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to jog device ',obj.serialNumber,' forward.\n', err.message])
                 end
-                obj.UpdatePositionTextbox();
-                
-            catch err % Device failed to jog
-                fprintf(1, '\n')
-                warning('Spectrometer:Thorlabs_DCServo', ['Unable to jog device ',obj.serialNumber,' forward.\n', err.message])
             end
         end
         
         function JogBackward(obj)
-            try
-                while obj.isBusy
+            if obj.isConnected
+                try
+                    while obj.isBusy
+                        pause(obj.TPOLLING./1000);
+                    end
+                    
+                    if strcmp(obj.direction, 'forward')
+                        MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Backward;
+                    elseif strcmp(obj.direction, 'backward')
+                        MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Forward;
+                    end
+                    workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
+                    obj.deviceNET.MoveJog(MotDir, workDone);
                     pause(obj.TPOLLING./1000);
-                end
-                
-                if strcmp(obj.direction, 'forward')
-                    MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Backward;
-                elseif strcmp(obj.direction, 'backward')
-                    MotDir = Thorlabs.MotionControl.GenericMotorCLI.MotorDirection.Forward;
-                end
-                workDone = obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
-                obj.deviceNET.MoveJog(MotDir, workDone);
-                pause(obj.TPOLLING./1000);
-                
-                while obj.deviceNET.IsDeviceBusy
+                    
+                    while obj.deviceNET.IsDeviceBusy
+                        obj.UpdatePositionTextbox();
+                        pause(obj.TPOLLING./1000);
+                    end
                     obj.UpdatePositionTextbox();
-                    pause(obj.TPOLLING./1000);
+                    
+                catch err % Device failed to jog
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to jog device ',obj.serialNumber,' forward.\n', err.message])
                 end
-                obj.UpdatePositionTextbox();
-                
-            catch err % Device failed to jog
-                fprintf(1, '\n')
-                warning('Spectrometer:Thorlabs_DCServo', ['Unable to jog device ',obj.serialNumber,' forward.\n', err.message])
             end
         end
         
         function Stop(obj) % Stop the motor moving (needed if set motor to continous)
-            obj.deviceNET.Stop(obj.TIMEOUTMOVE); % Stop motor movement via.NET interface
+            if obj.isConnected
+                try
+                    obj.deviceNET.Stop(obj.TIMEOUTMOVE); % Stop motor movement via.NET interface
+                catch err
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to stop device ',obj.serialNumber,'.\n', err.message])
+                end
+            end
         end
         
         function SetVelocity(obj, varargin)  % Set velocity and acceleration parameters
-            velpars = obj.deviceNET.GetVelocityParams(); % Get existing velocity and acceleration parameters
-            switch(nargin)
-                case 1  % If no parameters specified, set both velocity and acceleration to default values
-                    velpars.MaxVelocity = obj.DEFAULTVEL;
-                    velpars.Acceleration = obj.DEFAULTACC;
-                case 2  % If just one parameter, set the velocity
-                    velpars.MaxVelocity = varargin{1};
-                case 3  % If two parameters, set both velocitu and acceleration
-                    velpars.MaxVelocity = varargin{1};  % Set velocity parameter via .NET interface
-                    velpars.Acceleration = varargin{2}; % Set acceleration parameter via .NET interface
+            if obj.isConnected
+                try
+                    velpars = obj.deviceNET.GetVelocityParams(); % Get existing velocity and acceleration parameters
+                    switch(nargin)
+                        case 1  % If no parameters specified, set both velocity and acceleration to default values
+                            velpars.MaxVelocity = obj.DEFAULTVEL;
+                            velpars.Acceleration = obj.DEFAULTACC;
+                        case 2  % If just one parameter, set the velocity
+                            velpars.MaxVelocity = varargin{1};
+                        case 3  % If two parameters, set both velocitu and acceleration
+                            velpars.MaxVelocity = varargin{1};  % Set velocity parameter via .NET interface
+                            velpars.Acceleration = varargin{2}; % Set acceleration parameter via .NET interface
+                    end
+                    if System.Decimal.ToDouble(velpars.MaxVelocity)>25  % Allow velocity to be outside range, but issue warning
+                        warning('Velocity >25 deg/sec outside specification')
+                    end
+                    if System.Decimal.ToDouble(velpars.Acceleration)>25 % Allow acceleration to be outside range, but issue warning
+                        warning('Acceleration >25 deg/sec2 outside specification')
+                    end
+                    obj.deviceNET.SetVelocityParams(velpars); % Set velocity and acceleration paraneters via .NET interface
+                catch err
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to set velocity of device ',obj.serialNumber,'.\n', err.message])
+                end
             end
-            if System.Decimal.ToDouble(velpars.MaxVelocity)>25  % Allow velocity to be outside range, but issue warning
-                warning('Velocity >25 deg/sec outside specification')
-            end
-            if System.Decimal.ToDouble(velpars.Acceleration)>25 % Allow acceleration to be outside range, but issue warning
-                warning('Acceleration >25 deg/sec2 outside specification')
-            end
-            obj.deviceNET.SetVelocityParams(velpars); % Set velocity and acceleration paraneters via .NET interface
         end
         
         function SetCenter(obj)
             if obj.isConnected
-                obj.center = round(obj.absolutePosition, 2);
-                
-                %save that to a file
-                obj.SaveResetPosition;
+                try
+                    obj.center = round(obj.absolutePosition, 2);
+                    
+                    %save that to a file
+                    obj.SaveResetPosition;
+                catch err
+                    fprintf(1, '\n')
+                    warning('Spectrometer:Thorlabs_DCServo', ['Unable to save new center for device ',obj.serialNumber,'.\n', err.message])
+                end
             end
         end
         
@@ -376,7 +416,7 @@ classdef Thorlabs_DCServo < handle & matlab.mixin.Heterogeneous
                 'Position', [41.30769230769231, 3.3333333333333335-2.54*(obj.servoNum-1), 6.769230769230774, 1.8484848484848482],...
                 'Callback', {@(hObject,eventdata) pbReset_Callback(obj,hObject,eventdata)}...
                 );
-                        
+            
             %finally update handles
             obj.handles = guihandles(obj.hPanel);
         end
@@ -384,7 +424,7 @@ classdef Thorlabs_DCServo < handle & matlab.mixin.Heterogeneous
         function UpdatePositionTextbox(obj)
             if ~isempty(obj.hChildren)
                 set(obj.handles.(['editTxtServo' num2str(obj.servoNum)]),...
-                'String', sprintf('%3.2f', obj.position));
+                    'String', sprintf('%3.2f', obj.position));
             else
                 fprintf(1, '%s Position: %3.2f\n', obj.Tag, obj.position);
             end
