@@ -125,16 +125,16 @@ classdef Thorlabs_DCServo < handle & matlab.mixin.Heterogeneous
                 LoadResetPosition(obj);
                 obj.Home();
                 
-                if obj.servoNum == 1
-                    rotors = obj;
-                else
-                    rotors(obj.servoNum) = obj;
-                end
-                
                 fprintf(1, 'Done.\n');
             catch err
                 fprintf(1, '\n')
                 warning('Spectrometer:Thorlabs_DCServo', [sprintf('Failed to connect to Thorlabs DC servo %s: S/N %s\n', tagname, serialNumber), err.message])
+            end
+            
+            if obj.servoNum == 1
+                rotors = obj;
+            else
+                rotors(obj.servoNum) = obj;
             end
         end
         
