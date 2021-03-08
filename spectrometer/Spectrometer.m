@@ -549,8 +549,8 @@ for i = 1:length(motors)
     delete(motors{i});
 end
 
-for i = linspace(length(rotors), 1, length(rotors))
-    delete(rotors(i));
+while ~isempty(rotors)
+    delete(rotors(1));
 end
 
 delete(JY);
