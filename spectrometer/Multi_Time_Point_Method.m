@@ -2,13 +2,9 @@ classdef Multi_Time_Point_Method < Polarization_Method
     
     properties
         t2_array;
-        
         nScans_array;
         nScans_Para_array;
         nScans_Perp_array;
-        
-        hFig;
-        hChildren;
         
         t2s_rand;
         nScans_rand;
@@ -24,14 +20,14 @@ classdef Multi_Time_Point_Method < Polarization_Method
         temp_nScans_array;
         temp_nScans_Para_array;
         temp_nScans_Perp_array;
+        
+        hFig;
+        hChildren;
     end
     
     properties (Abstract)
         scanMethod;
-    end
-    
-    properties (Access=private)
-        colNames = {'t2', 'nScans'};
+        colNames;
     end
     
     methods
@@ -133,7 +129,8 @@ classdef Multi_Time_Point_Method < Polarization_Method
         end
         
         function createInputWindow(obj)
-            obj.hFig = uifigure('Name', 'Time Point Entry', 'Position', [680 500 250 500],...
+            w = 100.*numel(obj.colNames)+50;
+            obj.hFig = uifigure('Name', 'Time Point Entry', 'Position', [680 500 w 500],... %250
                 'resize', 'off'...
                 );
         end
@@ -145,9 +142,19 @@ classdef Multi_Time_Point_Method < Polarization_Method
             obj.temp_nScans_Para_array = obj.nScans_Para_array;
             obj.temp_nScans_Perp_array = obj.nScans_Perp_array;
 
-            tbl = table(obj.t2_array, obj.nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
+%             tbl = table(obj.t2_array, obj.nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
+            tblDataTypes = cell(1,numel(obj.colNames));
+            tblDataTypes(:) = {'cell'};
             
-            obj.hChildren{1} = uitable(obj.hFig, 'Position', [15, 73, 220 415],...
+            tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
+            
+            for ii = 1:numel(obj.colNames)
+                tbl(:, ii) = obj.([obj.colNames{ii} '_array']);
+                tbl.Properties.VariableNames{ii} = [obj.colNames{ii} '_array'];
+            end
+            
+            w = 100*numel(obj.colNames)+20;
+            obj.hChildren{1} = uitable(obj.hFig, 'Position', [15, 73, w 415],...%220
                 'Tag', 't2_nScans_uitable',...
                 'ColumnName', obj.colNames, 'ColumnEditable', true, ...
                 'RowName', 'numbered', 'Data', tbl ...
@@ -184,12 +191,16 @@ classdef Multi_Time_Point_Method < Polarization_Method
         end
         
         function InitializeInputWindow(obj)
-            obj.createInputWindow();
-            obj.createInputTable();
-            obj.createSaveButton();
-            obj.createCancelButton();
-            obj.createAddRowButton();
-            obj.createRemoveRowButton();
+            if ishghandle(obj.hFig)
+                figure(obj.hFig)
+            else
+                obj.createInputWindow();
+                obj.createInputTable();
+                obj.createSaveButton();
+                obj.createCancelButton();
+                obj.createAddRowButton();
+                obj.createRemoveRowButton();
+            end
         end
     end
     
@@ -211,7 +222,16 @@ classdef Multi_Time_Point_Method < Polarization_Method
         
         
         function UpdateTable(obj)
-            tbl = table(obj.temp_t2_array, obj.temp_nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
+%             tbl = table(obj.temp_t2_array, obj.temp_nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
+            tblDataTypes = cell(1,numel(obj.colNames));
+            tblDataTypes(:) = {'cell'};
+            
+            tbl = table('Size', [numel(obj.temp_t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
+
+            for ii = 1:numel(obj.colNames)
+                tbl(:, ii) = obj.(['temp_' obj.colNames{ii} '_array']);
+            end
+            
             set(obj.hChildren{1}, 'Data', tbl);            
         end
     end
