@@ -38,8 +38,6 @@ classdef Method_2d_quasiphase_Polarization < Method_2d_quasiphase & Polarization
             obj.initialPosition(1) = obj.source.motors{1}.GetPosition;
             obj.initialPosition(2) = obj.source.motors{2}.GetPosition;
             
-            obj.result.polarization = '';
-            
             obj.PARAMS = struct('nShots',[],'nScans', 2, 'nScans_Para',2,'nScans_Perp', 6, 'start',-500, 'end', 5000, ...
                 'speed', 800, 'bin_zero', 4000, 'bin_min', timeFsToBin(-500, 4000)+1, ...
                 'bin_max', timeFsToBin(5000, 4000)-21, 'acceleration', 66713,'t2',200 );
