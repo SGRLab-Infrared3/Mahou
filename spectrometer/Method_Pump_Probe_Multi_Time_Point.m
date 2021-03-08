@@ -1,6 +1,7 @@
 classdef Method_Pump_Probe_Multi_Time_Point < Method_Pump_Probe & Multi_Time_Point_Method
     properties
         scanMethod = ''; % 'Scan@Method(obj)';
+        colNames = {'t2', 'nScans'};
     end
     
     methods
@@ -17,5 +18,4 @@ classdef Method_Pump_Probe_Multi_Time_Point < Method_Pump_Probe & Multi_Time_Poi
             
         end
     end
-    
 end
