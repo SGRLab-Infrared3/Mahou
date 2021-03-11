@@ -48,9 +48,9 @@ classdef Multi_Time_Point_Method < Polarization_Method
             
             for ii = 1:length(t2s)
                 if obj.ScanIsStopping == false && ~isempty(obj.t2s_rand{ii})
-%                     while obj.ScanIsRunning
-%                         pause(1)
-%                     end
+                    while obj.ScanIsRunning
+                        pause(1)
+                    end
                     
                     obj.result.polarization = '';
                     %set scans
@@ -78,7 +78,9 @@ classdef Multi_Time_Point_Method < Polarization_Method
                     if ~contains(obj.scanMethod, 'Polarization')
                         obj.fileSystem.AppendLocalOutputFile(obj.current_nScans, obj.current_t2, obj.result.polarization);
                     end
-
+                    set(handles.textDate, 'String', obj.fileSystem.DateString);
+                    set(handles.textRunNumber, 'String', ['Run # ' num2str(obj.fileSystem.FileIndex)]);
+                    
                     pause(1)
                 end
             end
