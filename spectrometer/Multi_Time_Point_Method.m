@@ -75,7 +75,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
     
                     eval(obj.scanMethod);
                     
-                    if isempty(obj.result.polarization)
+                    if ~contains(obj.scanMethod, 'Polarization')
                         obj.fileSystem.AppendLocalOutputFile(obj.current_nScans, obj.current_t2, obj.result.polarization);
                     end
 
