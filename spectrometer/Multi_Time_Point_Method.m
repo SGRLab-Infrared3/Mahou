@@ -48,9 +48,9 @@ classdef Multi_Time_Point_Method < Polarization_Method
             
             for ii = 1:length(t2s)
                 if obj.ScanIsStopping == false && ~isempty(obj.t2s_rand{ii})
-                    while obj.ScanIsRunning
-                        pause(1)
-                    end
+%                     while obj.ScanIsRunning
+%                         pause(1)
+%                     end
                     
                     obj.result.polarization = '';
                     %set scans
@@ -68,18 +68,17 @@ classdef Multi_Time_Point_Method < Polarization_Method
                     obj.current_t2 = obj.t2s_rand{ii};
                     set(obj.handles.editt2, 'String', num2str(obj.current_t2));
                     
+                    if ~contains(obj.scanMethod, 'Polarization')
+                        obj.fileSystem.AppendLocalOutputFile(obj.current_nScans, obj.current_t2, obj.result.polarization);
+                    end
                     
-                        
-
     %                 Scan@Method(obj)
     
                     eval(obj.scanMethod);
                     
-                    if ~contains(obj.scanMethod, 'Polarization')
-                        obj.fileSystem.AppendLocalOutputFile(obj.current_nScans, obj.current_t2, obj.result.polarization);
-                    end
-                    set(handles.textDate, 'String', obj.fileSystem.DateString);
-                    set(handles.textRunNumber, 'String', ['Run # ' num2str(obj.fileSystem.FileIndex)]);
+                    
+                    set(obj.handles.textDate, 'String', obj.fileSystem.DateString);
+                    set(obj.handles.textRunNumber, 'String', ['Run # ' num2str(obj.fileSystem.FileIndex)]);
                     
                     pause(1)
                 end
@@ -146,7 +145,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
 
 %             tbl = table(obj.t2_array, obj.nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
             tblDataTypes = cell(1,numel(obj.colNames));
-            tblDataTypes(:) = {'cell'};
+            tblDataTypes(:) = {'double'};
             
             tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
             
@@ -212,7 +211,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
             names = data.Properties.VariableNames;
             
             for ii = 1:length(names)
-                obj.(['temp_' names{ii}]) = data.(names{ii});
+                obj.(['temp_' names{ii}]) = num2cell(data.(names{ii}));
             end
             
             obj.t2_array = obj.temp_t2_array;
@@ -226,12 +225,13 @@ classdef Multi_Time_Point_Method < Polarization_Method
         function UpdateTable(obj)
 %             tbl = table(obj.temp_t2_array, obj.temp_nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
             tblDataTypes = cell(1,numel(obj.colNames));
-            tblDataTypes(:) = {'cell'};
+            tblDataTypes(:) = {'double'};
             
             tbl = table('Size', [numel(obj.temp_t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
 
             for ii = 1:numel(obj.colNames)
                 tbl(:, ii) = obj.(['temp_' obj.colNames{ii} '_array']);
+                tbl.Properties.VariableNames{ii} = [obj.colNames{ii} '_array'];
             end
             
             set(obj.hChildren{1}, 'Data', tbl);            
