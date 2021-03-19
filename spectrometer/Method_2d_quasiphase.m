@@ -441,6 +441,14 @@ classdef Method_2d_quasiphase < Method
             obj.result.t0_bin = find(obj.result.bin==obj.PARAMS.bin_zero)-t0_bin_shift;
             obj.result.PARAMS = obj.PARAMS;
             obj.result.igram = obj.signal.igram;
+            obj.result.waveplate_angle = obj.source.rotors(1).position();
+            obj.result.polarizer_angle = obj.source.rotors(2).position();
+            
+            if obj.result.polarizer_angle == 0
+                obj.result.polarization = 'ZZZZ';
+            elseif obj.result.polarizer_angle == 90
+                obj.result.polarization = 'ZZXX';
+            end
             %obj.result.phase = analysis.ph;
             %obj.result.t0_bin = find(obj.result.bin==4000);
             
