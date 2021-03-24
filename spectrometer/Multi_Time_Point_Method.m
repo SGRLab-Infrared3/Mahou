@@ -52,7 +52,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
 %                         pause(1)
 %                     end
                     
-                    obj.result.polarization = '';
+%                     obj.result.polarization = '';
                     %set scans
                     obj.current_nScans = obj.nScans_rand{ii};
                     obj.current_nScans_Para = obj.nScans_Para_rand{ii};
@@ -145,7 +145,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
 
 %             tbl = table(obj.t2_array, obj.nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
             tblDataTypes = cell(1,numel(obj.colNames));
-            tblDataTypes(:) = {'double'};
+            tblDataTypes(:) = {'cell'};
             
             tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
             
@@ -211,26 +211,26 @@ classdef Multi_Time_Point_Method < Polarization_Method
             names = data.Properties.VariableNames;
             
             for ii = 1:length(names)
-                obj.(['temp_' names{ii}]) = num2cell(data.(names{ii}));
+                obj.(['temp_' names{ii}]) = data.(names{ii});
             end
-            
+        end
+        
+        function commitTableData(obj)
             obj.t2_array = obj.temp_t2_array;
             obj.nScans_array = obj.temp_nScans_array;
             obj.nScans_Para_array = obj.temp_nScans_Para_array;
             obj.nScans_Perp_array = obj.temp_nScans_Perp_array;
-
-        end
-        
+        end        
         
         function UpdateTable(obj)
 %             tbl = table(obj.temp_t2_array, obj.temp_nScans_array, 'VariableNames', {'t2_array', 'nScans_array'});
             tblDataTypes = cell(1,numel(obj.colNames));
-            tblDataTypes(:) = {'double'};
+            tblDataTypes(:) = {'cell'};
             
             tbl = table('Size', [numel(obj.temp_t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
 
             for ii = 1:numel(obj.colNames)
-                tbl(:, ii) = obj.(['temp_' obj.colNames{ii} '_array']);
+                tbl(:, ii) = num2cell(obj.(['temp_' obj.colNames{ii} '_array']));
                 tbl.Properties.VariableNames{ii} = [obj.colNames{ii} '_array'];
             end
             
@@ -245,6 +245,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
         
         function pbSave_ButtonPushedFcn(obj, eventdata, handles)
             obj.ReadTable();
+            obj.commitTableData();
             
             obj.SaveT2Array();
             obj.SavenScansArray();
@@ -257,21 +258,27 @@ classdef Multi_Time_Point_Method < Polarization_Method
         end
         
         function pbAddRow_ButtonPushedFcn(obj, eventdata, handles)
-            obj.temp_t2_array{end+1} = [];
-            obj.temp_nScans_array{end+1} = [];
-            obj.temp_nScans_Para_array{end+1} = [];
-            obj.temp_nScans_Perp_array{end+1} = [];
+            obj.ReadTable();
+            
+            obj.temp_t2_array{end+1,1} = [];
+            obj.temp_nScans_array{end+1,1} = [];
+            obj.temp_nScans_Para_array{end+1,1} = [];
+            obj.temp_nScans_Perp_array{end+1,1} = [];
             
             obj.UpdateTable();
         end
         
         function pbRemoveRow_ButtonPushedFcn(obj, eventdata, handles)
-            obj.temp_t2_array = obj.temp_t2_array(1:end-1);
-            obj.temp_nScans_array = obj.temp_nScans_array(1:end-1);
-            obj.temp_nScans_Para_array = obj.temp_nScans_Para_array(1:end-1);
-            obj.temp_nScans_Perp_array = obj.temp_nScans_Perp_array(1:end-1);
+            obj.ReadTable();
             
-            obj.UpdateTable();
+            if numel(obj.temp_t2_array) > 1
+                obj.temp_t2_array = obj.temp_t2_array(1:end-1);
+                obj.temp_nScans_array = obj.temp_nScans_array(1:end-1);
+                obj.temp_nScans_Para_array = obj.temp_nScans_Para_array(1:end-1);
+                obj.temp_nScans_Perp_array = obj.temp_nScans_Perp_array(1:end-1);
+
+                obj.UpdateTable();
+            end
         end
         
     end
