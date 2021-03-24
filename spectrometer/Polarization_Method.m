@@ -35,8 +35,9 @@ classdef Polarization_Method < Method
             obj.source.rotors(2).MoveTo(0);
             
             obj.ScanIsRunning = false;
-            
-%             obj.ScanIsStopping = false;
+            if ~contains(class(obj), 'Multi_Time')
+                obj.ScanIsStopping = false;
+            end
         end
     end
 end

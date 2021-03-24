@@ -317,7 +317,9 @@ classdef Method < handle
             
             obj.ScanIsRunning = false;
             
-            obj.ScanIsStopping = false;
+            if ~contains(class(obj), 'Multi_Time') || ~contains(class(obj), 'Polarization')
+                obj.ScanIsStopping = false;
+            end
             
         end
         
