@@ -32,7 +32,6 @@ classdef FileSystem < handle
             obj.updateParameters;
             try
                 obj.eln = labarchivesCallObj('page',obj.DateString);
-                obj.eln.insertEntryTemplate;
             catch
                 obj.flagSaveELN=false;
             end
