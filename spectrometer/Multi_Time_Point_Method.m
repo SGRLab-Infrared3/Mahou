@@ -147,18 +147,18 @@ classdef Multi_Time_Point_Method < Polarization_Method
             tblDataTypes = cell(1,numel(obj.colNames));
             tblDataTypes(:) = {'cell'};
             
-            if ~isempty(obj.t2_array{end})
-                obj.t2_array{end+1} = [];
-                obj.nScans_array{end+1} = [];
-                obj.nScans_Para_array{end+1} = [];
-                obj.nScans_Perp_array{end+1} = [];
+            if ~isempty(obj.temp_t2_array{end})
+                obj.temp_t2_array{end+1} = [];
+                obj.temp_nScans_array{end+1} = [];
+                obj.temp_nScans_Para_array{end+1} = [];
+                obj.temp_nScans_Perp_array{end+1} = [];
             end
 
-            tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes);
+            tbl = table('Size', [numel(obj.temp_t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes);
 
             
             for ii = 1:numel(obj.colNames)
-                tbl(:, ii) = obj.([obj.colNames{ii} '_array']);
+                tbl(:, ii) = obj.(['temp_' obj.colNames{ii} '_array']);
                 tbl.Properties.VariableNames{ii} = [obj.colNames{ii} '_array'];
             end
             
