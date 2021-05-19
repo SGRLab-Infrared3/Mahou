@@ -132,6 +132,7 @@ classdef Thorlabs_KCubeDCServo < Thorlabs_DCServo
                     elseif round(position, 2) == 360
                         position = 0;
                     end
+                    position = abs(position);
                 end
             catch
                 position = 33;
