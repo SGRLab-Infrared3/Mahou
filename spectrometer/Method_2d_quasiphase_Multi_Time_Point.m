@@ -1,7 +1,7 @@
 classdef Method_2d_quasiphase_Multi_Time_Point < Method_2d_quasiphase & Multi_Time_Point_Method
     
     properties
-        scanMethod = ''; % 'Scan@Method(obj)';
+        scanMethod = 'Scan@Method(obj)'; % '';
         colNames = {'t2', 'nScans'};
     end
     

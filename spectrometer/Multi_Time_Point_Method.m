@@ -47,7 +47,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
             obj.nScans_Perp_rand = nScans_Perp(permIndex);
             
             for ii = 1:length(t2s)
-                if obj.ScanIsStopping == false && ~isempty(obj.t2s_rand{ii})
+                if ~obj.ScanIsStopping && ~isempty(obj.t2s_rand{ii})
 %                     while obj.ScanIsRunning
 %                         pause(1)
 %                     end
@@ -80,7 +80,7 @@ classdef Multi_Time_Point_Method < Polarization_Method
                     set(obj.handles.textDate, 'String', obj.fileSystem.DateString);
                     set(obj.handles.textRunNumber, 'String', ['Run # ' num2str(obj.fileSystem.FileIndex)]);
                     
-                    pause(1)
+%                     pause(1)
                 end
             end
             obj.fileSystem.CloseLocalOutputFile();
@@ -147,7 +147,15 @@ classdef Multi_Time_Point_Method < Polarization_Method
             tblDataTypes = cell(1,numel(obj.colNames));
             tblDataTypes(:) = {'cell'};
             
-            tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes); 
+            if ~isempty(obj.t2_array{end})
+                obj.t2_array{end+1} = [];
+                obj.nScans_array{end+1} = [];
+                obj.nScans_Para_array{end+1} = [];
+                obj.nScans_Perp_array{end+1} = [];
+            end
+
+            tbl = table('Size', [numel(obj.t2_array) numel(obj.colNames)], 'VariableTypes', tblDataTypes);
+
             
             for ii = 1:numel(obj.colNames)
                 tbl(:, ii) = obj.([obj.colNames{ii} '_array']);
