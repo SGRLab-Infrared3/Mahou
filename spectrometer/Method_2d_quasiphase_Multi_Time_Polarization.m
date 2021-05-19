@@ -1,4 +1,5 @@
 classdef Method_2d_quasiphase_Multi_Time_Polarization < Method_2d_quasiphase_Polarization & Multi_Time_Point_Method
+    
     properties
         scanMethod = 'Scan@Polarization_Method(obj)';
         colNames = {'t2', 'nScans_Para', 'nScans_Perp'};
