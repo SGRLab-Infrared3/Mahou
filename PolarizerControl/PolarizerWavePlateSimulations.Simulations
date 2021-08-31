@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<SimulationCollection xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Simulations>
+    <Simulation DeviceType="27" ID="27253535" SerialNo="27253535" HardwareVersion="0">
+      <Actuators>
+        <Actuators ActuatorName="PRM1/M-Z8" />
+      </Actuators>
+    </Simulation>
+    <Simulation DeviceType="83" ID="83841565" SerialNo="83841565">
+      <Actuators>
+        <Actuators ActuatorName="PRM1/M-Z8" />
+      </Actuators>
+    </Simulation>
+  </Simulations>
+</SimulationCollection>

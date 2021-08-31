@@ -22,16 +22,16 @@ function varargout = Spectrometer(varargin)
 
 % Edit the above text to modify the response to help Spectrometer
 
-% Last Modified by GUIDE v2.5 10-Dec-2015 14:29:35
+% Last Modified by GUIDE v2.5 08-Apr-2019 16:44:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @Spectrometer_OpeningFcn, ...
-                   'gui_OutputFcn',  @Spectrometer_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @Spectrometer_OpeningFcn, ...
+    'gui_OutputFcn',  @Spectrometer_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -59,11 +59,11 @@ function Spectrometer_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to Spectrometer (see VARARGIN)
 
-global method IO FPAS motors JY fsToMm2Pass;
+global method IO FPAS motors rotors JY fsToMm2Pass;
 
 if isfield(handles,'initialized')
-  figure(gcf);
-  return
+    figure(gcf);
+    return
 end
 
 %set the function that will execute when the figure closes
@@ -75,6 +75,8 @@ handles.output = hObject;
 % Splash Screen
 splash = SplashScreen('Garrett-Roe 2D-IR Spectrometer', 'splash_screen.jpg');
 splash.addText(30,50, 'Garrett-Roe 2D-IR Spectrometer', 'FontSize', 30, 'Color', [0 0 0.6] )
+
+matlabBitVersion = computer('arch');
 
 %add menu item
 hmenu = uimenu(gcf,'Label','MCT','Tag','menuMCT');
@@ -88,20 +90,24 @@ hmenuToolsItems(1) = uimenu(hmenuTools, 'Label', 'Purge temporary data', 'Callba
 
 Constants;
 
-IO = [];
-try
-  IO = IO_Interface;
-  IO.CloseClockGate();
-catch
-  warning('SGRLAB:SimulationMode','IO not enabled');
+if strcmp(matlabBitVersion, 'win64')
+    IO = IO_Interface_64;
+    IO.CloseClockGate();
+else
+    IO = IO_Interface;
+    IO.CloseClockGate();
 end
 
-try
-  Interferometer_Stage = PI_TranslationStage('COM6', fsToMm2Pass,'backward', 'Motor1');
-  Population_Stage = PI_TranslationStage('COM4', fsToMm2Pass, 'forward', 'Motor2');
-  motors = { Interferometer_Stage, Population_Stage };
-catch
-  warning('SGRLAB:SimulationMode','PI stages not enabled');
+Interferometer_Stage = PI_TranslationStage('COM4', fsToMm2Pass,'backward', 'Motor1');
+Population_Stage = PI_TranslationStage('COM3', fsToMm2Pass, 'forward', 'Motor2');
+motors = { Interferometer_Stage, Population_Stage };
+
+
+Waveplate_Stage = Thorlabs_KCubeDCServo('27253535', 'forward', 'Waveplate');
+Polarizer_Stage = Thorlabs_TCubeDCServo('83841565', 'forward', 'Polarizer');
+
+for ii = 1:length(rotors)
+    rotors(ii).InitializeGui(handles.uipanelRotors);
 end
 
 FS = FileSystem.getInstance();
@@ -114,7 +120,8 @@ JY = Monochromator_JY.getInstance;
 JY.InitializeGui(handles.uipanelMonochromator);
 
 %Default method on startup.
-method = Method_Show_Spectrum(FPAS,IO,JY,motors, handles,handles.pnlParameters,handles.axesMain,handles.axesRawData,handles.pnlNoise);
+method = Method_Show_Spectrum(FPAS,IO,JY,motors,rotors, handles,...
+    handles.pnlParameters,handles.axesMain,handles.axesRawData,handles.pnlNoise);
 
 delete(splash);
 
@@ -148,25 +155,37 @@ if method.ScanIsRunning == true
     return;
 end
 
+val = get(handles.popupMethods,'Value');
+list = get(handles.popupMethods,'String');
+str = list{val}; %select contents of desired cell
+str_method = str(1:end-2); %chop off the ".m"
+
+if strcmp(str_method, 'Method_Collect_QCL_Spectrum')
+    set(hObject.Parent, 'WindowStyle', 'modal');
+end
+
 set(handles.pbGo, 'String', 'Stop', 'BackgroundColor', [1.0 0.0 0.0]);
 
 try
-  method.Scan;
-  %print;
+    method.Scan;
+    %print;
 catch E
-  %cleanup('','');
-  set(handles.pbGo, 'String', 'Go', 'BackgroundColor', 'green');
-  warning(E.message);
-  %reset FPAS
-  method.source.sampler.Initialize;
-  %reset scan is running
-  method.ScanIsRunning = false;
+    %cleanup('','');
+    set(handles.pbGo, 'String', 'Go', 'BackgroundColor', 'green');
+    warning(E.message);
+    %reset FPAS
+    method.source.sampler.Initialize;
+    %reset scan is running
+    method.ScanIsRunning = false;
 end
 
 FS = FileSystem.getInstance;
 set(handles.pbGo, 'String', 'Go', 'BackgroundColor', 'green');
 set(handles.textDate, 'String', FS.DateString);
 set(handles.textRunNumber, 'String', ['Run # ' num2str(FS.FileIndex)]);
+
+set(hObject.Parent, 'WindowStyle', 'normal');
+
 
 % --------------------------------------------------------------------
 function FileMenu_Callback(hObject, eventdata, handles)
@@ -197,8 +216,8 @@ function CloseMenuItem_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
-                     ['Close ' get(handles.figure1,'Name') '...'],...
-                     'Yes','No','Yes');
+    ['Close ' get(handles.figure1,'Name') '...'],...
+    'Yes','No','Yes');
 if strcmp(selection,'No')
     return;
 end
@@ -224,7 +243,7 @@ function popupmenu1_CreateFcn(hObject, eventdata, handles)
 % Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-     set(hObject,'BackgroundColor','white');
+    set(hObject,'BackgroundColor','white');
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -249,7 +268,7 @@ function updateMethod(handles)
 %update the current method based on the values of the popup menus Method
 %and DataSource. Gate and Spectrometer could be added but not yet
 %implemented. Called by popupMethods_Callback and popupDataSource_Callback
-global method IO JY motors;
+global method IO JY motors rotors;
 
 %clear old class instance
 delete(method);
@@ -267,8 +286,8 @@ sampler = feval([str_sampler '.getInstance']);
 
 %method = Method_Show_Spectrum(TEST,IO,JY,handles,handles.pnlParameters,...
 %  handles.axesMain,handles.axesRawData,handles.pnlNoise);
-method = feval(str_method,sampler,IO,JY,motors,handles,handles.pnlParameters,...
-  handles.axesMain,handles.axesRawData,handles.pnlNoise);
+method = feval(str_method,sampler,IO,JY,motors,rotors,handles,handles.pnlParameters,...
+    handles.axesMain,handles.axesRawData,handles.pnlNoise);
 
 % --- Executes during object creation, after setting all properties.
 function popupMethods_CreateFcn(hObject, eventdata, handles)
@@ -286,7 +305,7 @@ DEFAULT = 'Method_Show_Spectrum.m';
 %we have to check the right folder. So we find the name of this mfile
 %(Spectrometer.m) and its path, then extract the path part, and use this to
 %find the classes we want.
-fullNameAndPath = mfilename('fullpath'); %name of this m-file 
+fullNameAndPath = mfilename('fullpath'); %name of this m-file
 [pathpart,~,~]=fileparts(fullNameAndPath);%we want path
 name_struct = dir([pathpart '\Method_*.m']);
 name_cell = {name_struct.name};
@@ -323,7 +342,7 @@ DEFAULT = 'Sampler_FPAS.m';
 %we have to check the right folder. So we find the name of this mfile
 %(Spectrometer.m) and its path, then extract the path part, and use this to
 %find the classes we want.
-fullNameAndPath = mfilename('fullpath'); %name of this m-file 
+fullNameAndPath = mfilename('fullpath'); %name of this m-file
 [pathpart,~,~]=fileparts(fullNameAndPath);%we want path
 name_struct = dir([pathpart '\Sampler_*.m']);
 name_cell = {name_struct.name};
@@ -425,9 +444,9 @@ H = handles.(['editMotor' num2str(i_motor)]);
 
 pos = str2double(get(H, 'String'));
 if ~isnan(pos)
-  set(H, 'String', 'moving');
-  new_pos = motors{i_motor}.MoveTo(pos, 6000, 0, 0);
-  set(H, 'String', num2str(new_pos));
+    set(H, 'String', 'moving');
+    new_pos = motors{i_motor}.MoveTo(pos, 6000, 0, 0);
+    set(H, 'String', num2str(new_pos));
 end
 
 % --- Executes on button press in pbMotor1Reset.
@@ -518,35 +537,41 @@ set(H, 'String', num2str(new_pos));
 
 function cleanup(src,event)
 %for exit
-global IO FPAS JY method motors;
+global IO FPAS JY method motors rotors qclgui;
 
-disp('shutting down');
+fprintf(1, '\n---- Initializing Shutdown ----\n\n')
 
 %save parameters for next time?
-disp('NOT YET IMPLEMENTED: save parameters for next time');
+fprintf(1, 'NOT YET IMPLEMENTED: save parameters for next time\n\n');
 
-disp('clean up stages')
+% disp('clean up stages')
 for i = 1:length(motors)
-  delete(motors{i});
+    delete(motors{i});
 end
 
-disp('clean up Monochromator')
+while ~isempty(rotors)
+    delete(rotors(1));
+end
+
 delete(JY);
 
-disp('clean up Method')
 delete(method);
 
-disp('clean up IO')
 delete(IO);
 
-disp('clean up FPAS')
 delete(FPAS);
 
 % disp('clean up File System')
 % delete(FS);
- 
-disp('close figure')
+
+
+if ~isempty(qclgui) && isvalid(qclgui)
+    delete(qclgui)
+end
+
+fprintf(1, 'Closing figure ... ')
 delete(gcbf);
+fprintf(1, 'Done.\n')
 
 
 % --- Executes on selection change in popupDataSource.
@@ -581,15 +606,15 @@ function checkboxMainAutoY_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkboxMainAutoY
 val = get(hObject,'Value');
 if val
-  %if checked (val = 1) set auto
-  set(handles.axesMain,'YLimMode','auto')
+    %if checked (val = 1) set auto
+    set(handles.axesMain,'YLimMode','auto')
 else
-  %if not checked (val = 0) set man
-  set(handles.axesMain,'YLimMode','man')
-  ylim = get(handles.axesMain,'YLim');
-  set(handles.editMainYLim1,'String',num2str(ylim(1)));
-  set(handles.editMainYLim2,'String',num2str(ylim(2)));
-end  
+    %if not checked (val = 0) set man
+    set(handles.axesMain,'YLimMode','man')
+    ylim = get(handles.axesMain,'YLim');
+    set(handles.editMainYLim1,'String',num2str(ylim(1)));
+    set(handles.editMainYLim2,'String',num2str(ylim(2)));
+end
 
 
 function editMainYLim2_Callback(hObject, eventdata, handles)
@@ -605,7 +630,7 @@ set(handles.checkboxMainAutoY,'Value',0);
 ylim = get(handles.axesMain,'YLim');
 val = str2double(get(hObject,'String'));
 if ~isnan(val)
-  ylim(ind) = val;
+    ylim(ind) = val;
 end
 set(handles.axesMain,'YLim',ylim);
 
@@ -636,7 +661,7 @@ set(handles.checkboxMainAutoY,'Value',0);
 ylim = get(handles.axesMain,'YLim');
 val = str2double(get(hObject,'String'));
 if ~isnan(val)
-  ylim(ind) = val;
+    ylim(ind) = val;
 end
 set(handles.axesMain,'YLim',ylim);
 
@@ -670,17 +695,17 @@ end
 set(hObject, 'String', 'Background running...', 'BackgroundColor', [1.0 0.0 0.0]);
 
 try
-  method.BackgroundAcquire;
+    method.BackgroundAcquire;
 catch E
-  
-  set(hObject, 'String', 'Background', 'BackgroundColor', [0.8 0.8 0.8]);
-  %cleanup('','');
-  warning('SGRLAB:UnderConstruction','An error occured during the background!!!');
-  warning(E.message);
-  %reset FPAS
-  method.source.sampler.Initialize;
-  %reset scan is running
-  method.ScanIsRunning = false;  
+    
+    set(hObject, 'String', 'Background', 'BackgroundColor', [0.8 0.8 0.8]);
+    %cleanup('','');
+    warning('SGRLAB:UnderConstruction','An error occured during the background!!!');
+    warning(E.message);
+    %reset FPAS
+    method.source.sampler.Initialize;
+    %reset scan is running
+    method.ScanIsRunning = false;
 end
 
 set(hObject, 'String', 'Background', 'BackgroundColor', [0.8 0.8 0.8]);
@@ -710,10 +735,10 @@ src = 'uninited src';
 eventdata =  'uninited eventdata';
 
 if nargin >= 1
-  src = varargin{1};
+    src = varargin{1};
 end
 if nargin >= 2
-  eventdata = varargin{2};
+    eventdata = varargin{2};
 end
 
 cleanupPanel(PANEL_NAME);
@@ -740,25 +765,25 @@ pos = get(handles.axesMain,'Position');
 xoffset = -0.05;
 height = 0.3;
 uipanelGainTrim = uipanel(gcf,'units','normalized',...
-  'Position',[pos(1)+xoffset pos(2)-height pos(3)-xoffset*1.05 height],...
-  'Tag',PANEL_NAME);
+    'Position',[pos(1)+xoffset pos(2)-height pos(3)-xoffset*1.05 height],...
+    'Tag',PANEL_NAME);
 % pbDone = uicontrol(uipanelGainTrim,'Style','PushButton','Tag','pbGainTrimDone',...
 %   'units','normalized',...
 %   'Position',[0 0.7 0.11 0.3],...
 %   'String','Done',...
 %   'Callback',{@(src,eventinfo) cleanup(src,eventinfo,uipanelGainTrim)});
 pbDone = uicontrol(uipanelGainTrim,'Style','PushButton','Tag','pbGainTrimDone',...
-  'units','normalized',...
-  'Position',[0 0.8 0.11 0.2],...
-  'String','Done',...
-  'Callback',{@(src,eventinfo) cleanupPanel(PANEL_NAME)});
+    'units','normalized',...
+    'Position',[0 0.8 0.11 0.2],...
+    'String','Done',...
+    'Callback',{@(src,eventinfo) cleanupPanel(PANEL_NAME)});
 
 label = get(src,'Label');
 switch label
-  case 'Set gain'
-    newGainFunction(uipanelGainTrim,method);
-  case 'Set trim'
-    newTrimFunction(uipanelGainTrim,method);
+    case 'Set gain'
+        newGainFunction(uipanelGainTrim,method);
+    case 'Set trim'
+        newTrimFunction(uipanelGainTrim,method);
 end
 
 %waitfor(f);
@@ -769,7 +794,7 @@ end
 function newGainFunction(uipanelGainTrim,method)
 
 %if nargin >=1
-%  method = varargin{1};   
+%  method = varargin{1};
 %end
 nPix = method.nPixelsPerArray;
 nArrays = method.nArrays;
@@ -781,28 +806,28 @@ set(uipanelGainTrim,'Title','Set gain');
 
 %a  = axes('units','normalized','OuterPosition',[0.05 0.2 0.9 0.8]);
 %plot(a,1:10,rand(1,10));
-HIGH = 1; 
+HIGH = 1;
 LOW = 0;
 bgHighLow = uibuttongroup(uipanelGainTrim,'Tag','bgHighLow','units','normalized',...
-  'Position',[0.0 0.0 0.11 .4]);
+    'Position',[0.0 0.0 0.11 .4]);
 uicontrol(bgHighLow,'Style','radiobutton',...
-  'String','High','units','normalized','Position',[0 0 1 0.5],...
-  'UserData',HIGH);
+    'String','High','units','normalized','Position',[0 0 1 0.5],...
+    'UserData',HIGH);
 uicontrol(bgHighLow,'Style','radiobutton',...
-  'String','Low','units','normalized','Position',[0 0.5 1 0.5],...
-  'UserData',LOW);
+    'String','Low','units','normalized','Position',[0 0.5 1 0.5],...
+    'UserData',LOW);
 set(bgHighLow,'SelectedObject',[]);
 set(bgHighLow,'SelectionChangeFcn',{@(src,event) bgGainTrim_selection_change(src,event,uipanelGainTrim,method)});
 
 
 bgBatchSet = uibuttongroup(uipanelGainTrim,'Tag','bgBatchSetGain','units','normalized',...
-  'Position',[0.0 .4 0.11 .4]);
+    'Position',[0.0 .4 0.11 .4]);
 uicontrol(bgBatchSet,'Style','radiobutton',...
-  'String','All 7','units','normalized','Position',[0 0 1 0.5],...
-  'UserData',7);
+    'String','All 7','units','normalized','Position',[0 0 1 0.5],...
+    'UserData',7);
 uicontrol(bgBatchSet,'Style','radiobutton',...
-  'String','All 0','units','normalized','Position',[0 0.5 1 0.5],...
-  'UserData',0);
+    'String','All 0','units','normalized','Position',[0 0.5 1 0.5],...
+    'UserData',0);
 set(bgBatchSet,'SelectedObject',[]);
 set(bgBatchSet,'SelectionChangeFcn',{@(src,event) bgGainTrim_selection_change(src,event,uipanelGainTrim,method)});
 
@@ -821,27 +846,27 @@ SldrOpt.SliderStep = [1 1];
 SldrOpt.value = 7; % read from somewhere?
 SldrOpt.Position = [0 0.4 0.7 0.6];
 EditOpts = {'fontsize',9,'units','normalized','Position',[0 0 1 0.4],...
-  'Tag','edit'};
+    'Tag','edit'};
 LabelOpts = {'fontsize',6,'fontweight','b','Visible','off'};
 numFormat = '%1.0f';
 
-count = 0;    
+count = 0;
 for i = 1:nArrays
-  for j = 1:nPix
-    count = count+1;
-    PnlOpt.position = [0.11+width*(j-1) 0.5*(nArrays-i) width height];
-    PnlOpt.title = num2str(j +(i-1)*nPix);
-    SldrOpt.callback = {@sliderGain_Callback};
-    SldrOpt.Tag = sprintf('slider%i',count);
-    slider = sliderPanel(uipanelGainTrim,PnlOpt,SldrOpt,EditOpts,LabelOpts,numFormat);
-    set(slider, 'UserData', count);
-  end
+    for j = 1:nPix
+        count = count+1;
+        PnlOpt.position = [0.11+width*(j-1) 0.5*(nArrays-i) width height];
+        PnlOpt.title = num2str(j +(i-1)*nPix);
+        SldrOpt.callback = {@sliderGain_Callback};
+        SldrOpt.Tag = sprintf('slider%i',count);
+        slider = sliderPanel(uipanelGainTrim,PnlOpt,SldrOpt,EditOpts,LabelOpts,numFormat);
+        set(slider, 'UserData', count);
+    end
 end
 
 function sliderGain_Callback(src, eventdata)
 global method;
 
-  method.source.sampler.SetGain(get(src,'UserData'), round(get(src,'Value')));
+method.source.sampler.SetGain(get(src,'UserData'), round(get(src,'Value')));
 
 function newTrimFunction(uipanelGainTrim, method)
 
@@ -851,13 +876,13 @@ nArrays = method.nArrays;
 set(uipanelGainTrim,'Title','Set trim');
 
 bgBatchSet = uibuttongroup(uipanelGainTrim,'Tag','bgBatchSetTrim','units','normalized',...
-  'Position',[0.0 .4 0.11 .4]);
+    'Position',[0.0 .4 0.11 .4]);
 uicontrol(bgBatchSet,'Style','radiobutton',...
-  'String','All 255','units','normalized','Position',[0 0 1 0.5],...
-  'UserData',255);
+    'String','All 255','units','normalized','Position',[0 0 1 0.5],...
+    'UserData',255);
 uicontrol(bgBatchSet,'Style','radiobutton',...
-  'String','All 0','units','normalized','Position',[0 0.5 1 0.5],...
-  'UserData',0);
+    'String','All 0','units','normalized','Position',[0 0.5 1 0.5],...
+    'UserData',0);
 set(bgBatchSet,'SelectedObject',[]);
 set(bgBatchSet,'SelectionChangeFcn',{@(src,event) bgGainTrim_selection_change(src,event,uipanelGainTrim,method)});
 
@@ -878,23 +903,23 @@ EditOpts = {'fontsize',9,'units','normalized','Position',[0 0 1 0.4],'Tag','edit
 LabelOpts = {'fontsize',6,'fontweight','b','Visible','off'};
 numFormat = '%1.0f';
 
-count = 0;    
+count = 0;
 for i = 1:nArrays
-  for j = 1:nPix
-    count = count+1;
-    PnlOpt.position = [0.11+width*(j-1) 0.5*(nArrays-i) width height];
-    PnlOpt.title = num2str(j +(i-1)*nPix);
-    SldrOpt.callback = {@sliderTrim_Callback};
-    SldrOpt.Tag = sprintf('slider%i',count);
-    slider = sliderPanel(uipanelGainTrim,PnlOpt,SldrOpt,EditOpts,LabelOpts,numFormat);
-    set(slider, 'UserData', count);
-  end
+    for j = 1:nPix
+        count = count+1;
+        PnlOpt.position = [0.11+width*(j-1) 0.5*(nArrays-i) width height];
+        PnlOpt.title = num2str(j +(i-1)*nPix);
+        SldrOpt.callback = {@sliderTrim_Callback};
+        SldrOpt.Tag = sprintf('slider%i',count);
+        slider = sliderPanel(uipanelGainTrim,PnlOpt,SldrOpt,EditOpts,LabelOpts,numFormat);
+        set(slider, 'UserData', count);
+    end
 end
 
 function sliderTrim_Callback(src, eventdata)
 global method;
 
-  method.source.sampler.SetTrim(get(src,'UserData'), round(get(src,'Value')));
+method.source.sampler.SetTrim(get(src,'UserData'), round(get(src,'Value')));
 
 function bgGainTrim_selection_change(src,eventdata,uipanelGainTrim,method)
 s = get(src,'Tag');
@@ -903,16 +928,16 @@ handles = guidata(src);
 sliders = findobj(uipanelGainTrim,'-regexp','Tag','slider[\d]');
 edits = findobj(uipanelGainTrim,'-regexp','Tag','edit');
 switch s
-  case 'bgHighLow'
-    method.source.sampler.SetGainRange(val);
-  case 'bgBatchSetGain'
-    method.source.sampler.SetGainAll(val);
-    set(sliders,'Value',val);
-    set(edits,'String',sprintf('%1.0f',val));
-  case 'bgBatchSetTrim'
-    method.source.sampler.SetTrimAll(val);
-    set(sliders,'Value',val);
-    set(edits,'String',sprintf('%1.0f',val));
+    case 'bgHighLow'
+        method.source.sampler.SetGainRange(val);
+    case 'bgBatchSetGain'
+        method.source.sampler.SetGainAll(val);
+        set(sliders,'Value',val);
+        set(edits,'String',sprintf('%1.0f',val));
+    case 'bgBatchSetTrim'
+        method.source.sampler.SetTrimAll(val);
+        set(sliders,'Value',val);
+        set(edits,'String',sprintf('%1.0f',val));
 end
 
 
@@ -949,4 +974,46 @@ function slider2_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on selection change in pumLaserSource.
+function pumLaserSource_Callback(hObject, eventdata, handles)
+% hObject    handle to pumLaserSource (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns pumLaserSource contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from pumLaserSource
+global qclgui
+
+selValue = get(hObject, 'Value');
+
+switch selValue
+    case 1
+        if ~isempty(qclgui) || isvalid(qclgui)
+            timer = timerfind('tag', 'updateQCLInfo');
+            timerStatus = get(timer, 'Running');
+            if strcmp(timerStatus,'on')
+                stop(timer)
+            end
+            delete(timerfind('tag', 'updateQCLInfo'));
+            delete(qclgui);
+        end
+    case 2
+        qclgui = QCLGUI;
+    otherwise
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function pumLaserSource_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pumLaserSource (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
