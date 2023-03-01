@@ -96,6 +96,7 @@ catch
   warning('SGRLAB:SimulationMode','IO not enabled');
 end
 
+<<<<<<< Updated upstream
 try
   Interferometer_Stage = PI_TranslationStage('COM6', fsToMm2Pass,'backward', 'Motor1');
   Population_Stage = PI_TranslationStage('COM4', fsToMm2Pass, 'forward', 'Motor2');
@@ -103,6 +104,19 @@ try
 catch
   warning('SGRLAB:SimulationMode','PI stages not enabled');
 end
+=======
+Interferometer_Stage = PI_TranslationStage('COM4', fsToMm2Pass,'backward', 'Motor1');
+Population_Stage = PI_TranslationStage('COM3', fsToMm2Pass, 'forward', 'Motor2');
+motors = { Interferometer_Stage, Population_Stage };
+
+
+% Waveplate_Stage = Thorlabs_KCubeDCServo('27253535', 'forward', 'Waveplate');
+% Polarizer_Stage = Thorlabs_TCubeDCServo('83841565', 'forward', 'Polarizer');
+
+% for ii = 1:length(rotors)
+%     rotors(ii).InitializeGui(handles.uipanelRotors);
+% end
+>>>>>>> Stashed changes
 
 FS = FileSystem.getInstance();
 set(handles.textDate, 'String', FS.DateString);
